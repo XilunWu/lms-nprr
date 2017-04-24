@@ -24,6 +24,7 @@ trait QueryAST {
   case class HashJoin(parent1: Operator, parent2: Operator) extends Operator
   case class LFTJoin(parents: List[Operator], names: List[String]) extends Operator
   //TODO: NprrJoin
+  case class NprrJoin(parents:List[Operator], outSchema:Schema) extends Operator
   case class Count(parent: Operator) extends Operator
 
   // filter predicates
@@ -76,6 +77,9 @@ trait StagedQueryProcessor extends QueryProcessor with Dsl {
 }
 
 trait Engine extends QueryProcessor with ExpectedASTs{
+  import java.io._
+
+  val debug_writecode = true
   def query: String
   def filename: String
   def queryplan: Operator
@@ -93,6 +97,48 @@ trait Engine extends QueryProcessor with ExpectedASTs{
       eval
     }
     source.toString
+  }
+  //print code out
+  val outputDir = "src/out/"
+  def writeFileIndented(name: String, content: String) {
+    val out = new java.io.PrintWriter(new File(name))
+    printIndented(content)(out)
+    out.close()
+  }
+  def writeCode(problem: String, raw_code: String, target_code: String = "scala") = {
+    val name = outputDir+problem+"."+target_code
+    println("Writing code into file: " + name)
+    writeFileIndented(name, raw_code)
+  }
+  def printIndented(str: String)(out: PrintWriter): Unit = {
+    val lines = str.split("[\n\r]")
+    var indent = 0
+    for (l0 <- lines) {
+      val l = l0.trim
+      if (l.length > 0) {
+        var open = 0
+        var close = 0
+        var initClose = 0
+        var nonWsChar = false
+        l foreach {
+          case '{' => {
+            open += 1
+            if (!nonWsChar) {
+              nonWsChar = true
+              initClose = close
+            }
+          }
+          case '}' => close += 1
+          case x => if (!nonWsChar && !x.isWhitespace) {
+            nonWsChar = true
+            initClose = close
+          }
+        }
+        if (!nonWsChar) initClose = close
+        out.println("  " * (indent - initClose) + l)
+        indent += (open - close)
+      }
+    }
   }
 }
 trait StagedEngine extends Engine with StagedQueryProcessor {
@@ -121,7 +167,7 @@ object Run {
         val IR: q.type = q
       }
       override def snippet(fn: Table): Rep[Unit] = run
-      override def prepare: Unit = precompile
+      override def prepare: Unit = {precompile; if (debug_writecode) writeCode(qu, code, "scala")}
       override def eval: Unit = eval(filename)
     }
   def c_engine =
@@ -132,7 +178,7 @@ object Run {
       }
       override def snippet(fn: Table): Rep[Unit] = run
       override def prepare: Unit = {}
-      override def eval: Unit = eval(filename)
+      override def eval: Unit = {if (debug_writecode) writeCode(qu, code, "c"); eval(filename)}
     }
 
   def main(args: Array[String]) {

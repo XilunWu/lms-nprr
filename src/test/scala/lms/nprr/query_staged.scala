@@ -76,6 +76,9 @@ Query Interpretation = Compilation
     case Group(keys, agg, parent)=> keys ++ agg
     case HashJoin(left, right)   => resultSchema(left) ++ resultSchema(right)
     case PrintCSV(parent)        => Schema()
+    case NprrJoin(parents, outSchema) => outSchema
+    case Count(parent)            => Schema("#COUNT")
+
   }
 
   def execOp(o: Operator)(yld: Record => Rep[Unit]): Rep[Unit] = o match {
@@ -112,6 +115,15 @@ Query Interpretation = Compilation
           yld(Record(rec1.fields ++ rec2.fields, rec1.schema ++ rec2.schema))
         }
       }
+    case LFTJoin(parents, names) => //left blank. 
+    case NprrJoin(parents, outSchema) =>
+      //We don't load data by ourselves but load them from existing file. Need follow the format
+
+      //Once finish loading Tries, create iterators based on parents
+
+      //Run nprr join on them
+
+      //Output the result
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -123,8 +135,9 @@ Query Interpretation = Compilation
 Data Structure Implementations
 ------------------------------
 */
-  // defaults for hash sizes etc
 
+  
+  // defaults for hash sizes etc
   object hashDefaults {
     val hashSize   = (1 << 8)
     val keysSize   = hashSize

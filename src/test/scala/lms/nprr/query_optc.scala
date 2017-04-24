@@ -6,6 +6,7 @@ object query_optc {
 trait QueryCompiler extends Dsl with StagedQueryProcessor
 with ScannerLowerBase {
   override def version = "query_optc"
+  /*
   val queryNumber = "Q5"
   val sf = 1
   val tableSize = sf match {
@@ -17,7 +18,7 @@ with ScannerLowerBase {
     case "Q9" => Vector("NATION","SUPP","ORDERS","LINEITEM","PART","PARTSUPP")
   }
   val tpchTables = Vector("REGION","NATION","SUPP","CUSTOMER","PART","PARTSUPP","ORDERS","LINEITEM")
-
+  */
 /**
 Input File Tokenizer
 --------------------
@@ -208,8 +209,10 @@ Query Interpretation = Compilation
           "#ORDERKEY"
           )
       }*/
+      //Only for TriangleCounting
       val schema = Schema("#X","#Y","#Z")
       schema
+    case NprrJoin(parents, outSchema) => outSchema
     case Count(parent)            => Schema("#COUNT")
   }
 
@@ -305,6 +308,15 @@ Query Interpretation = Compilation
         unchecked[Unit]("end = clock(); printf(\"Join: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
         i += 1
       }
+    case NprrJoin(parents, outSchema) =>
+      //We don't load data by ourselves but load them from existing file. Need follow the format
+
+      //Once finish loading Tries, create iterators based on parents
+
+      //Run nprr join on them
+
+      //Output the result
+
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
