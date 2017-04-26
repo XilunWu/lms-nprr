@@ -24,7 +24,7 @@ trait QueryAST {
   case class HashJoin(parent1: Operator, parent2: Operator) extends Operator
   case class LFTJoin(parents: List[Operator], names: List[String]) extends Operator
   //TODO: NprrJoin
-  case class NprrJoin(parents:List[Operator], outSchema:Schema) extends Operator
+  case class NprrJoin(parents:List[Operator], outSchema:Schema, num_threads:Int) extends Operator
   case class Count(parent: Operator) extends Operator
 
   // filter predicates
@@ -178,7 +178,7 @@ object Run {
       }
       override def snippet(fn: Table): Rep[Unit] = run
       override def prepare: Unit = {}
-      override def eval: Unit = {if (debug_writecode) writeCode(qu, code, "c"); eval(filename)}
+      override def eval: Unit = {if (debug_writecode) writeCode(qu, code, "c"); /*eval(filename)*/}
     }
 
   def main(args: Array[String]) {
@@ -215,7 +215,17 @@ object Run {
 trait ExpectedASTs extends QueryAST {
   val scan_t = Scan("t.csv")
 
+  val num_threads = 1
+
+  val edge_0_1 = Scan("t.csv", Some(Schema("0","1")), Some('\t'))
+  val edge_0_2 = Scan("t.csv", Some(Schema("0","2")), Some('\t'))
+  val edge_1_2 = Scan("t.csv", Some(Schema("1","2")), Some('\t'))
+  val count_t = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
+    Schema("0", "1", "2"),
+    num_threads)
+
   val expectedAstForTest = Map(
-    "t1" -> scan_t
+    "t1" -> scan_t,
+    "triangle_counting" -> count_t
   ) 
 }

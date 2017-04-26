@@ -212,7 +212,7 @@ Query Interpretation = Compilation
       //Only for TriangleCounting
       val schema = Schema("#X","#Y","#Z")
       schema
-    case NprrJoin(parents, outSchema) => outSchema
+    case NprrJoin(parents, outSchema, num_threads) => outSchema
     case Count(parent)            => Schema("#COUNT")
   }
 
@@ -308,15 +308,30 @@ Query Interpretation = Compilation
         unchecked[Unit]("end = clock(); printf(\"Join: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
         i += 1
       }
-    case NprrJoin(parents, outSchema) =>
-      //We don't load data by ourselves but load them from existing file. Need follow the format
+    case NprrJoin(parents, outSchema, num_threads) =>
+      //Don't forget to generate a script to compile & run it
 
+      //We don't load data by ourselves but load them from existing file. Need follow the format
+      val programs = new StringBuilder()
+      //initialize the thread pool
+      programs ++= "thread_pool::initializeThreadPool();\n"
+      //load edge
+      val tables = Vector("Edge_0_1", "Edge_0_2", "Edge_1_2")
+      programs ++= s"""Trie_${tables(0)} = Trie<void *, ParMemoryBuffer>::load(\"/home/wu636/cs525_project/${num_threads}_threads/relations/Edge/Edge_0_1");\n"""
+      //load encoding
+      programs ++= s"""Encoding<uint32_t> *Encoding_uint32_t = Encoding<uint32_t>::from_binary(\"/home/wu636/cs525_project/${num_threads}_threads/encodings/uint32_t/");\n"""
+      programs ++= s"""par::reducer<size_t> num_rows_reducer(\0, [](size_t a, size_t b) { return a + b; });\n"""
+
+      //Start timing for query
+      programs ++= s"""auto query_timer = timer::start_clock();\n"""
+      programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_TriangleList_0_1_2 = new Trie<void *, ParMemoryBuffer>("/home/wu636/Engines/EmptyHeaded/test/graph/databases/triangle_counting/relations/TriangleList", 3, false);\n"""
       //Once finish loading Tries, create iterators based on parents
 
       //Run nprr join on them
 
+      unchecked[Unit](programs.toString)
       //Output the result
-
+      unit()
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)

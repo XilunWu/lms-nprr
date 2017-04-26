@@ -76,7 +76,7 @@ Query Interpretation = Compilation
     case Group(keys, agg, parent)=> keys ++ agg
     case HashJoin(left, right)   => resultSchema(left) ++ resultSchema(right)
     case PrintCSV(parent)        => Schema()
-    case NprrJoin(parents, outSchema) => outSchema
+    case NprrJoin(parents, outSchema, num_threads) => outSchema
     case Count(parent)            => Schema("#COUNT")
 
   }
@@ -116,7 +116,7 @@ Query Interpretation = Compilation
         }
       }
     case LFTJoin(parents, names) => //left blank. 
-    case NprrJoin(parents, outSchema) =>
+    case NprrJoin(parents, outSchema, num_threads) =>
       //We don't load data by ourselves but load them from existing file. Need follow the format
 
       //Once finish loading Tries, create iterators based on parents
@@ -136,7 +136,6 @@ Data Structure Implementations
 ------------------------------
 */
 
-  
   // defaults for hash sizes etc
   object hashDefaults {
     val hashSize   = (1 << 8)
