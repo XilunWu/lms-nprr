@@ -259,6 +259,17 @@ trait DslGenC extends CGenNumericOps
 
       """)
     }
+    //This is for nprr
+    withStream(out) {
+      stream.println("""
+      #include "Encoding.hpp"
+      #include "Trie.hpp"
+      #include "TrieBuilder.hpp"
+      #include "TrieIterator.hpp"
+      #include "utils/thread_pool.hpp"
+      #include "utils/timer.hpp"
+        """)
+    }
     super.emitSource[A](args, body, functionName, out)
   }
 }

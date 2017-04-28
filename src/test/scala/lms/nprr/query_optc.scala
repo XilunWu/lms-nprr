@@ -314,18 +314,19 @@ Query Interpretation = Compilation
       //We don't load data by ourselves but load them from existing file. Need follow the format
       val programs = new StringBuilder()
       //initialize the thread pool
+      programs ++= "std::unordered_map<std::string, void *>* input_tries = new std::unordered_map<std::string, void *>();\n"
       programs ++= "thread_pool::initializeThreadPool();\n"
       //load edge
       val tables = Vector("Edge_0_1", "Edge_0_2", "Edge_1_2")
       programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_${tables(0)} = NULL;\n"""
-      programs ++= s"""Trie_${tables(0)} = Trie<void *, ParMemoryBuffer>::load(\"/home/wu636/cs525_project/test/${num_threads}_threads/relations/Edge/Edge_0_1");\n"""
+      programs ++= s"""Trie_${tables(0)} = Trie<void *, ParMemoryBuffer>::load(\"${System.getProperty("user.dir")}/cs525_project/test/${num_threads}_threads/relations/Edge/Edge_0_1");\n"""
       //load encoding
-      programs ++= s"""Encoding<uint32_t> *Encoding_uint32_t = Encoding<uint32_t>::from_binary(\"/home/wu636/cs525_project/test/${num_threads}_threads/encodings/uint32_t/");\n"""
+      programs ++= s"""Encoding<uint32_t> *Encoding_uint32_t = Encoding<uint32_t>::from_binary(\"${System.getProperty("user.dir")}/cs525_project/test/${num_threads}_threads/encodings/uint32_t/");\n"""
       programs ++= s"""par::reducer<size_t> num_rows_reducer(0, [](size_t a, size_t b) { return a + b; });\n"""
 
       //Start timing for query
       programs ++= s"""auto query_timer = timer::start_clock();\n"""
-      programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_TriangleList_0_1_2 = new Trie<void *, ParMemoryBuffer>("/home/wu636/cs525_project/test/2_threads/relations/TriangleList", 3, false);\n"""
+      programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_TriangleList_0_1_2 = new Trie<void *, ParMemoryBuffer>("${System.getProperty("user.dir")}/cs525_project/test/2_threads/relations/TriangleList", 3, false);\n"""
       //Once finish loading Tries, create iterators based on parents
       programs ++= s"""{\n"""
       //programs ++= s"""auto bag_timer = timer::start_clock();\n num_rows_reducer.clear();\n"""
