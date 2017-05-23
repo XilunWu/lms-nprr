@@ -178,7 +178,7 @@ object Run {
       }
       override def snippet(fn: Table): Rep[Unit] = run
       override def prepare: Unit = {}
-      override def eval: Unit = {if (debug_writecode) writeCode(qu, code, "c"); /*eval(filename)*/}
+      override def eval: Unit = {if (debug_writecode) writeCode(qu, code, "c"); eval(filename)}
     }
 
   def main(args: Array[String]) {

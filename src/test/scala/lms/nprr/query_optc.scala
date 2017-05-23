@@ -6,19 +6,6 @@ object query_optc {
 trait QueryCompiler extends Dsl with StagedQueryProcessor
 with ScannerLowerBase {
   override def version = "query_optc"
-  /*
-  val queryNumber = "Q5"
-  val sf = 1
-  val tableSize = sf match {
-    case 1 => Vector(10,30,10001,150001,200001,800001,1500001,6001216)
-    case 10 => Vector(10,30,100001,1500001,2000001,8000001,15000001,59986053)
-  }
-  val tablesInQuery = queryNumber match {
-    case "Q5" => Vector("NATION","REGION","SUPP","CUSTOMER","ORDERS","LINEITEM")
-    case "Q9" => Vector("NATION","SUPP","ORDERS","LINEITEM","PART","PARTSUPP")
-  }
-  val tpchTables = Vector("REGION","NATION","SUPP","CUSTOMER","PART","PARTSUPP","ORDERS","LINEITEM")
-  */
 /**
 Input File Tokenizer
 --------------------
@@ -309,68 +296,7 @@ Query Interpretation = Compilation
         i += 1
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      //Don't forget to generate a script to compile & run it
-
-      //We don't load data by ourselves but load them from existing file. Need follow the format
-      val programs = new StringBuilder()
-      //initialize the thread pool
-      programs ++= "std::unordered_map<std::string, void *>* input_tries = new std::unordered_map<std::string, void *>();\n"
-      programs ++= "thread_pool::initializeThreadPool();\n"
-      //load edge
-      val tables = Vector("Edge_0_1", "Edge_0_2", "Edge_1_2")
-      programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_${tables(0)} = NULL;\n"""
-      programs ++= s"""Trie_${tables(0)} = Trie<void *, ParMemoryBuffer>::load(\"${System.getProperty("user.dir")}/cs525_project/test/${num_threads}_threads/relations/Edge/Edge_0_1");\n"""
-      //load encoding
-      programs ++= s"""Encoding<uint32_t> *Encoding_uint32_t = Encoding<uint32_t>::from_binary(\"${System.getProperty("user.dir")}/cs525_project/test/${num_threads}_threads/encodings/uint32_t/");\n"""
-      programs ++= s"""par::reducer<size_t> num_rows_reducer(0, [](size_t a, size_t b) { return a + b; });\n"""
-
-      //Start timing for query
-      programs ++= s"""auto query_timer = timer::start_clock();\n"""
-      programs ++= s"""Trie<void *, ParMemoryBuffer> *Trie_TriangleList_0_1_2 = new Trie<void *, ParMemoryBuffer>("${System.getProperty("user.dir")}/cs525_project/test/2_threads/relations/TriangleList", 3, false);\n"""
-      //Once finish loading Tries, create iterators based on parents
-      programs ++= s"""{\n"""
-      //programs ++= s"""auto bag_timer = timer::start_clock();\n num_rows_reducer.clear();\n"""
-      programs ++= s"""ParTrieBuilder<void *, ParMemoryBuffer> Builders(Trie_TriangleList_0_1_2,3);\n"""
-      parents foreach { p => 
-        programs ++= s"""Builders.trie->encodings.push_back((void *)Encoding_uint32_t);\nParTrieIterator<void *, ParMemoryBuffer> Iterators_${tables(parents indexOf p)}(Trie_Edge_0_1);\n"""
-      }
-
-      //Run nprr join on them
-      //start from the first level
-      programs ++= s"""const size_t count_a = Builders.build_set(Iterators_Edge_0_1.head, Iterators_Edge_0_2.head);\n"""
-      programs ++= s"""Builders.allocate_next();\n"""
-      //build the following part parallelly
-      programs ++= s"""Builders.par_foreach_builder([&](const size_t tid, const uint32_t a_i, const uint32_t a_d) {\n
-        TrieBuilder<void *, ParMemoryBuffer> *Builder = Builders.builders.at(tid);\n
-        TrieIterator<void *, ParMemoryBuffer> *Iterator_Edge_0_1 = Iterators_Edge_0_1.iterators.at(tid);\n
-        TrieIterator<void *, ParMemoryBuffer> *Iterator_Edge_1_2 = Iterators_Edge_1_2.iterators.at(tid);\n
-        TrieIterator<void *, ParMemoryBuffer> *Iterator_Edge_0_2 = Iterators_Edge_0_2.iterators.at(tid);\n
-        Iterator_Edge_0_1->get_next_block(0, a_d);\n
-        Iterator_Edge_0_2->get_next_block(0, a_d);\n
-        const size_t count_b = Builder->build_set(tid, Iterator_Edge_0_1->get_block(1), Iterator_Edge_1_2->get_block(0));\n
-        Builder->allocate_next(tid);\n
-        Builder->foreach_builder([&](const uint32_t b_i, const uint32_t b_d) {\n
-          Iterator_Edge_1_2->get_next_block(0, b_d);\n
-          const size_t count_c = Builder->build_set(tid, Iterator_Edge_1_2->get_block(1), Iterator_Edge_0_2->get_block(1));\n
-          num_rows_reducer.update(tid, count_c);\n
-          Builder->set_level(b_i, b_d);\n
-        });\n
-        Builder->set_level(a_i, a_d);\n
-      });\n""".replaceAll("(\\h\\h+)", "")
-      //output the result. Here in our case it's the number of triangles
-      programs ++= s"""Builders.trie->num_rows = num_rows_reducer.evaluate(0);\n"""
-      //print it out
-      programs ++= s"""std::cout << "NUM ROWS: " << Builders.trie->num_rows << " ANNOTATION: " << Builders.trie->annotation << std::endl;\n"""
-      programs ++= s"""}\n"""
-
-      programs ++= s"""input_tries->insert(std::make_pair("TriangleList_0_1_2", Trie_TriangleList_0_1_2));\n"""
-      //Done. Stop timing.
-      programs ++= s"""timer::stop_clock("QUERY TIME", query_timer);\n"""
-      //Delete Thread pool
-      programs ++= s"""thread_pool::deleteThreadPool();\n"""
-      //Generate code manually      
-      unchecked[Unit](programs.toString)
-      unit()
+      
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -382,6 +308,26 @@ Query Interpretation = Compilation
 Data Structure Implementations
 ------------------------------
 */
+  class Trie {
+    //val trie_binary_data = NewArray[Byte](1 << 24) //16M bytes
+    def BytesToInt32(bytes:Rep[Array[Byte]]):Rep[Int] = {
+      val i0 = (bytes(0).AsInstanceOf[Int] & 0xff) << 24
+      val i1 = (bytes(1).AsInstanceOf[Int] & 0xff) << 16
+      val i2 = (bytes(2).AsInstanceOf[Int] & 0xff) << 8
+      val i3 = (bytes(3).AsInstanceOf[Int] & 0xff)
+      i0 | i1 | i2 | i3
+    }
+    def Int32ToBytes(i:Rep[Int]):Rep[Array[Byte]] = {
+      val bytes = NewArray[Byte](4)
+      bytes(0) = ((i >> 24) & 0xff).AsInstanceOf[Byte]
+      bytes(1) = ((i >> 16) & 0xff).AsInstanceOf[Byte]
+      bytes(2) = ((i >> 8) & 0xff).AsInstanceOf[Byte]
+      bytes(3) = (i & 0xff).AsInstanceOf[Byte]
+      bytes
+    }
+  }
+  class TrieBlock {}
+
   def access(i: Rep[Int], len: Int)(f: Int => Rep[Unit]): Rep[Unit] = {
     if(i < 0) unit()
     else accessHelp(i, len, 0)(f)
