@@ -279,10 +279,12 @@ Query Interpretation = Compilation
         i += 1
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      val tries = parents.map{ p => execOp(p) {
-        //TODO: build trie from data
-
-        }}
+      val tries = parents.map { p => 
+        val bintrie = new BinTrie(resultSchema(p))
+        execOp(p) { rec => bintrie += rec.fields }
+      bintrie.compress
+      bintrie.print
+      }
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -309,6 +311,13 @@ Data Structure Implementations
     var data = NewArray[Rep[Byte]](initDataLen)
     var len = 0
     var maxLen = initDataLen
+
+    //for debug: output the byte array
+    def print = {
+      var i = 0
+      while (i < len) print(data(i).toString + " ")
+      println("")
+    }
 
     def += (x:Fields) = {
       val intFields = x.map{
@@ -412,6 +421,7 @@ Data Structure Implementations
       var num = 1
       val min = col(start)
       val max = col(end-1)
+      val range = max - min
       while (i < end-1) {
         if (col(i) != col(i+1)) num += 1
         i += 1
@@ -426,18 +436,16 @@ Data Structure Implementations
           if (col(i-1) != col(i)) pushBytes(Int32ToBytes(col(i)), 4)
           i += 1
         }
+        //allocate space for indices
+        val sizeOfIndex = 4*num
+        len += sizeOfIndex
       } else {                          //Bitset
         val sizeOfSet = (max - min + 8)/8  //bytes
         pushBytes(makeBitset(col, start, end), sizeOfSet)
+        //allocate space for indices
+        val sizeOfIndex = (range+8)/8*4
+        len += sizeOfIndex
       }
-      //allocate index
-      if (typeOfSet == 0) {
-
-      }
-      else {
-
-      }
-
     }
     def writeHead(numOfInt: Rep[Int], min: Rep[Int], max: Rep[Int]): Rep[Unit] = {
       val range = max-min
