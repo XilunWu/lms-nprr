@@ -178,24 +178,7 @@ Query Interpretation = Compilation
     case Group(keys, agg, parent)=> keys ++ agg
     case HashJoin(left, right)   => resultSchema(left) ++ resultSchema(right)
     case PrintCSV(parent)        => Schema()
-    case LFTJoin(parents, names)        =>/*
-      val schema = queryNumber match {
-        case "Q5" => Schema(
-          "#REGIONKEY",
-          "#NATIONKEY",
-          "N_NAME",
-          "#CUSTKEY",
-          "#ORDERKEY",
-          "#SUPPKEY",
-          "#PARTKEY")
-        case "Q9" => Schema(
-          "#NATIONKEY",
-          "N_NAME",
-          "#SUPPKEY",
-          "#PARTKEY",
-          "#ORDERKEY"
-          )
-      }*/
+    case LFTJoin(parents, names)        =>
       //Only for TriangleCounting
       val schema = Schema("#X","#Y","#Z")
       schema
@@ -296,7 +279,10 @@ Query Interpretation = Compilation
         i += 1
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      
+      val tries = parents.map{ p => execOp(p) {
+        //TODO: build trie from data
+
+        }}
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -308,8 +294,38 @@ Query Interpretation = Compilation
 Data Structure Implementations
 ------------------------------
 */
-  class Trie {
-    //val trie_binary_data = NewArray[Byte](1 << 24) //16M bytes
+  object BinTrieConst{
+    val initRawDataLen = 1<<10
+    val initDataLen = 1<<14
+    val sizeOfBlockHead = 21 //bytes
+  }
+  class BinTrie (schema: Schema){
+    import BinTrieConst._
+    //initial byte vector size = 16KB
+    var rawData = schema.map{a => NewArray[Rep[Int]](initRawDataLen)}
+    var rawLen = 0
+    var rawMaxLen = initRawDataLen
+
+    var data = NewArray[Rep[Byte]](initDataLen)
+    var len = 0
+    var maxLen = initDataLen
+
+    def += (x:Fields) = {
+      val intFields = x.map{
+        case RInt(i) => i
+        case _       => 0
+      }
+      rawLen += 1
+      if (rawLen == rawMaxLen) {
+        var newRawData = schema.map{a => NewArray[Rep[Int]](2*rawMaxLen)}        
+        array_copy(rawData, 0, newRawData, 0, rawMaxLen)
+        rawMaxLen *= 2
+        rawData = newRawData
+      }
+      (intFields,rawData).zipped.foreach { 
+        case (field, col) => col(rawLen) = field
+      }
+    }
     def BytesToInt32(bytes:Rep[Array[Byte]]):Rep[Int] = {
       val i0 = (bytes(0).AsInstanceOf[Int] & 0xff) << 24
       val i1 = (bytes(1).AsInstanceOf[Int] & 0xff) << 16
@@ -325,8 +341,155 @@ Data Structure Implementations
       bytes(3) = (i & 0xff).AsInstanceOf[Byte]
       bytes
     }
+    def compress: Rep[Unit] = {
+      var index : NewArray[Rep[Int]] = unit(0)
+      rawData foreach { col => 
+        if (rawData indexOf col == 0) index = compressColAndIndex(col)
+        else if (rawData indexOf col == rawData.length - 1) compressCol(index, col)
+        else index = compressColAndIndex(index, col) 
+      }
+      refineIndex
+    }    
+    def compressColAndIndex(col:Rep): Rep[Array[Int]]): Rep[Array[Int]] = {
+        val newIndex = NewArray[Rep[Int]](rawLen)
+        var i = 0;
+        var j = 0;
+        var lastInt = -1
+        while (i < rawLen) {
+          if (lastInt == col(i)) i += 1
+          else {
+            lastInt = col(i)
+            newIndex(j) = i
+            j += 1
+            i += 1
+          }
+        }
+        newIndex(j) = rawLen
+        newIndex(j+1) = -1
+        compressCol(col)
+        newIndex
+    }
+    def compressColAndIndex(index: Rep[Array[Int]], col: Rep[Array[Int]]): Rep[Array[Int]] = {
+      val newIndex = NewArray[Rep[Int]](rawLen)
+
+      var i = 0;
+      var j = 0;
+      var k = 0;
+      var lastInt = -1
+      while (i < rawLen) {
+        if (i == index(k)) {
+          newIndex(j) = i
+          k += 1
+          j += 1
+          i += 1
+          lastInt = col(i)
+        }
+        else if (lastInt == col(i)) i += 1
+        else {
+          lastInt = col(i)
+          newIndex(j) = i
+          j += 1
+          i += 1
+        }
+      }
+      newIndex(j) = rawLen
+      newIndex(j+1) = -1
+      compressCol(index, col)
+      newIndex
+    }
+    def compressCol(col: Rep[Array[Int]]): Rep[Unit] = {
+      compressBlock(col, 0, rawLen)
+    }
+    def compressCol(index: Rep[Array[Int]], col: Rep[Array[Int]]): Rep[Unit] = {
+      var j = 1
+      while (index(j) != -1) {
+        compressBlock(col, index(j-1), index(j))
+        j += 1
+      }
+    }
+    def compressBlock(col: Rep[Array[Int]], start: Rep[Int], end: Rep[Int]) = {
+      var i = start
+      var num = 1
+      val min = col(start)
+      val max = col(end-1)
+      while (i < end-1) {
+        if (col(i) != col(i+1)) num += 1
+        i += 1
+      }
+      writeHead(num, min, max)
+      val typeOfSet = if (1.0 * range/num > 32) 0 else 1
+      //write data
+      if (typeOfSet == 0) {       //UInt
+        pushBytes(Int32ToBytes(col(start)), 4)
+        i = start + 1
+        while (i < end) {
+          if (col(i-1) != col(i)) pushBytes(Int32ToBytes(col(i)), 4)
+          i += 1
+        }
+      } else {                          //Bitset
+        val sizeOfSet = (max - min + 8)/8  //bytes
+        pushBytes(makeBitset(col, start, end), sizeOfSet)
+      }
+      //allocate index
+      if (typeOfSet == 0) {
+
+      }
+      else {
+
+      }
+
+    }
+    def writeHead(numOfInt: Rep[Int], min: Rep[Int], max: Rep[Int]): Rep[Unit] = {
+      val range = max-min
+      val sizeOfHead = BinTrieConst.sizeOfBlockHead
+      val typeOfSet: Rep[Byte] = if (1.0 * range/numOfInt > 32) 0 else 1
+      val sizeOfSet = if (typeOfSet == 0) 4*numOfInt else (range+8)/8
+      val sizeOfIndex = if (typeOfSet == 0) 4*numOfInt else (range+8)/8*4
+      val sizeOfBlock = sizeOfHead + sizeOfSet + sizeOfIndex
+      val startOfIndex = sizeOfHead + sizeOfSet
+      pushBytes(Int32ToBytes(sizeOfBlock), 4)
+      pushBytes(Int32ToBytes(numOfInt), 4)
+      pushBytes(Int32ToBytes(startOfIndex), 4)
+      pushBytes(Int32ToBytes(min), 4)
+      pushBytes(Int32ToBytes(max), 4)
+      pushByte(typeOfSet)
+    }
+    def pushByte(byte: Rep[Byte]) = {
+      if (len == maxLen) {
+        val newData = NewArray[Rep[Byte]](maxLen * 2)
+        array_copy(data, 0, newData, 0, maxLen)
+        maxLen *= 2
+        data = newData
+      }
+      data(len) = byte
+      len += 1
+    }
+    def pushBytes(bytes: Rep[Array[Byte]], arrLen:Rep[Int]) = {
+      if (len+arrLen > maxLen) {
+        val len1 = len+arrLen
+        val len2 = maxLen*2
+        val newLen = Math.max(len1, len2)
+        val newData = NewArray[Rep[Byte]](newLen)
+        array_copy(data, 0, newData, 0, maxLen)
+        maxLen = newLen
+        data = newData
+      }
+      var i = 0
+      while (i < arrLen) {
+        data(len + i) = bytes(i)
+        i += 1
+      }
+      len += arrLen
+    }
+
   }
-  class TrieBlock {}
+  class BinTrieBlock {
+    def getChild(index:Rep[Int]):TrieBlock = {
+
+    }
+
+  }
+  object BinTrieBlock { }
 
   def access(i: Rep[Int], len: Int)(f: Int => Rep[Unit]): Rep[Unit] = {
     if(i < 0) unit()
