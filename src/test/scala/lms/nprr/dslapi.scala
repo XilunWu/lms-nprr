@@ -49,7 +49,7 @@ trait Dsl extends PrimitiveOps with NumericOps with MathOps with BooleanOps with
   def comment[A:Typ](l: String, verbose: Boolean = true)(b: => Rep[A]): Rep[A]
 }
 
-trait DslExp extends Dsl with PrimitiveOpsExpOpt with NumericOpsExpOpt with BooleanOpsExp with IfThenElseExpOpt with EqualExpBridgeOpt with RangeOpsExp with OrderingOpsExp with MiscOpsExp with EffectExp with ArrayOpsExpOpt with StringOpsExp with SeqOpsExp with FunctionsRecursiveExp with WhileExp with StaticDataExp with VariablesExpOpt with ObjectOpsExpOpt with UtilOpsExp with CastingOpsExp{
+trait DslExp extends Dsl with PrimitiveOpsExpOpt with NumericOpsExpOpt with MathOpsExp with BooleanOpsExp with IfThenElseExpOpt with EqualExpBridgeOpt with RangeOpsExp with OrderingOpsExp with MiscOpsExp with EffectExp with ArrayOpsExpOpt with StringOpsExp with SeqOpsExp with FunctionsRecursiveExp with WhileExp with StaticDataExp with VariablesExpOpt with ObjectOpsExpOpt with UtilOpsExp with CastingOpsExp{
   override def boolean_or(lhs: Exp[Boolean], rhs: Exp[Boolean])(implicit pos: SourceContext) : Exp[Boolean] = lhs match {
     case Const(false) => rhs
     case _ => super.boolean_or(lhs, rhs)
@@ -84,7 +84,7 @@ trait DslExp extends Dsl with PrimitiveOpsExpOpt with NumericOpsExpOpt with Bool
   override def isPrimitiveType[T](m: Typ[T]) = (m == manifest[String]) || super.isPrimitiveType(m)
 }
 trait DslGen extends ScalaGenNumericOps
-    with ScalaGenPrimitiveOps with ScalaGenBooleanOps with ScalaGenIfThenElse
+    with ScalaGenPrimitiveOps with ScalaGenMathOps with ScalaGenBooleanOps with ScalaGenIfThenElse
     with ScalaGenEqual with ScalaGenRangeOps with ScalaGenOrderingOps
     with ScalaGenMiscOps with ScalaGenArrayOps with ScalaGenStringOps
     with ScalaGenSeqOps with ScalaGenFunctions with ScalaGenWhile
@@ -131,7 +131,7 @@ trait DslImpl extends DslExp { q =>
 
 // TODO: currently part of this is specific to the query tests. generalize? move?
 trait DslGenC extends CGenNumericOps
-    with CGenPrimitiveOps with CGenBooleanOps with CGenIfThenElse
+    with CGenPrimitiveOps with CGenMathOps with CGenBooleanOps with CGenIfThenElse
     with CGenEqual with CGenRangeOps with CGenOrderingOps
     with CGenMiscOps with CGenArrayOps with CGenStringOps
     with CGenSeqOps with CGenFunctions with CGenWhile
@@ -219,6 +219,7 @@ trait DslGenC extends CGenNumericOps
       #include <sys/mman.h>
       #include <sys/stat.h>
       #include <stdio.h>
+      #include <stdlib.h>
       #include <stdint.h>
       #include <unistd.h>
       #include <time.h>
@@ -256,6 +257,10 @@ trait DslGenC extends CGenNumericOps
         }
         Snippet(argv[1]);
         return 0;
+      }
+      int string_toInt(const char * s)
+      {
+        return atoi(s);
       }
 
       """)

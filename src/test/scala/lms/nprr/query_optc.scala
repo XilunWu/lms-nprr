@@ -282,8 +282,10 @@ Query Interpretation = Compilation
       val tries = parents.map { p => 
         val bintrie = new BinTrie(resultSchema(p))
         execOp(p) { rec => bintrie += rec.fields }
-      bintrie.compress
-      bintrie.my_print
+        bintrie
+        unit()
+      //bintrie.compress
+      //bintrie.my_print
       }
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
@@ -301,18 +303,27 @@ Data Structure Implementations
     val initDataLen     = (1 << 14)
     val sizeOfBlockHead = 21 //bytes
   }
-  class BinTrie (schema: Schema){
+  class BinTrie (schema: Schema) {
     import binTrieConst._
     //initial byte vector size = 16KB
-    var rawData = schema.map{a => NewArray[Int](initRawDataLen)}
+    val rawData = schema.map { a => NewArray[Int](initRawDataLen) }
     var rawLen = 0
     var rawMaxLen = initRawDataLen
+    /*
+    import scala.reflect.runtime.universe._
+    def paramInfo[T](x: T)(implicit tag: TypeTag[T]): Unit = {
+      val targs = tag.tpe match { case TypeRef(_, _, args) => args }
+      println(s"type of $x has type arguments $targs")
+    }
+    */
+    //paramInfo(rawData)
 
-    var data = NewArray[Byte](initDataLen)
+    val data = NewArray[Byte](initDataLen)
     var len = 0
     var maxLen = initDataLen
 
     //for debug: output the byte array
+
     def my_print = {
       var i = 0
       while (i < len) print(data(i).toString + " ")
@@ -320,10 +331,11 @@ Data Structure Implementations
     }
 
     def += (x:Fields) = {
-      val intFields = x.map{
-        case RInt(i) => i
-        case _       => 0
+      val intFields = x.map {
+        case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
+        case RString (str: Rep[String], len: Rep[Int]) => str.toInt
       }
+      /*
       if (rawLen == rawMaxLen) {
         val newRawData = schema.map{a => NewArray[Int](2*rawMaxLen)}   
         (rawData, newRawData).zipped.foreach {
@@ -333,11 +345,17 @@ Data Structure Implementations
         rawMaxLen *= 2
         rawData = newRawData
       }
+      
+
+      paramInfo(intFields)
+      */
       (intFields,rawData).zipped.foreach { 
         case (field, col) => col(rawLen) = field
       }
+      
       rawLen += 1
     }
+    /*
     def BytesToInt32(bytes:Rep[Array[Byte]]):Rep[Int] = {
       val i0 = (bytes(0).AsInstanceOf[Int] & 0xff) << 24
       val i1 = (bytes(1).AsInstanceOf[Int] & 0xff) << 16
@@ -356,8 +374,8 @@ Data Structure Implementations
     def compress: Rep[Unit] = {
       var index : Rep[Array[Int]] = unit(null)
       rawData foreach { col => 
-        if (rawData indexOf col == 0) index = compressColAndIndex(col)
-        else if (rawData indexOf col == rawData.length - 1) compressCol(index, col)
+        if ((rawData indexOf col) == 0) index = compressColAndIndex(col)
+        else if ((rawData indexOf col) == (rawData.length - 1)) compressCol(index, col)
         else index = compressColAndIndex(index, col) 
       }
       refineIndex
@@ -494,8 +512,7 @@ Data Structure Implementations
         i += 1
       }
       len += arrLen
-    }
-
+    }*/
   }
 
   def access(i: Rep[Int], len: Int)(f: Int => Rep[Unit]): Rep[Unit] = {

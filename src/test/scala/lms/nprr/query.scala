@@ -215,9 +215,9 @@ object Run {
 trait ExpectedASTs extends QueryAST {
   val scan_t = Scan("t.csv")
 
-  val edge_0_1 = Scan("t.csv", Some(Schema("0","1")), Some('\t'))
-  val edge_0_2 = Scan("t.csv", Some(Schema("0","2")), Some('\t'))
-  val edge_1_2 = Scan("t.csv", Some(Schema("1","2")), Some('\t'))
+  val edge_0_1 = Scan("t01.csv", Some(Schema("0","1")), Some('\t'))
+  val edge_0_2 = Scan("t02.csv", Some(Schema("0","2")), Some('\t'))
+  val edge_1_2 = Scan("t12.csv", Some(Schema("1","2")), Some('\t'))
   def NprrJoin(parents:List[Operator], outSchema:Schema)(num_threads:Int):NprrJoin =
     NprrJoin(parents, outSchema, num_threads) 
   val count_t = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
