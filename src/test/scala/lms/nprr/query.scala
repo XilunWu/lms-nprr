@@ -22,7 +22,7 @@ trait QueryAST {
   case class Join(parent1: Operator, parent2: Operator) extends Operator
   case class Group(keys: Schema, agg: Schema, parent: Operator) extends Operator
   case class HashJoin(parent1: Operator, parent2: Operator) extends Operator
-  case class LFTJoin(parents: List[Operator], names: List[String]) extends Operator
+  //case class LFTJoin(parents: List[Operator], names: List[String]) extends Operator
   //TODO: NprrJoin
   case class NprrJoin(parents:List[Operator], outSchema:Schema, num_threads:Int) extends Operator
   case class Count(parent: Operator) extends Operator
@@ -223,8 +223,10 @@ trait ExpectedASTs extends QueryAST {
   val count_t = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
     Schema("0", "1", "2"))(_)
 
-  val test = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
-    Schema("0", "1", "2"), 1)
+  /*val test = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
+    Schema("0", "1", "2"), 1)*/
+  val test = NprrJoin(List(edge_0_1),
+    Schema("0", "1"), 1)
   
   val expectedAstForTest = Map(
     "t1" -> scan_t,

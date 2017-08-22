@@ -115,7 +115,7 @@ Query Interpretation = Compilation
           yld(Record(rec1.fields ++ rec2.fields, rec1.schema ++ rec2.schema))
         }
       }
-    case LFTJoin(parents, names) => //left blank. 
+    //case LFTJoin(parents, names) => //left blank. 
     case NprrJoin(parents, outSchema, num_threads) =>
       //We don't load data by ourselves but load them from existing file. Need follow the format
 
