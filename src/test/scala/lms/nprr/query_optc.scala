@@ -304,6 +304,8 @@ Data Structure Implementations
 */
   object intTrieConst{
     val initRawDataLen  = (1 << 10)
+    val sizeof_uint_set_header = 2
+    val type_uintvec = 1
   }
   
   object binTrieConst{
@@ -316,31 +318,101 @@ Data Structure Implementations
     val sizeof_bitvec_header = 3
     val sizeof_uintvec_header = 2
   }
+  class Matrix (row: Rep[Int], col: Rep[Int]) {
+    val rows = NewArray[Array[Int]](row)
+    var i = 0
+    //while (i < row) rows(i) = NewArray[Int](col)
+    def apply(row_num: Rep[Int]): Rep[Array[Int]] = rows(row_num)
+    def apply(row_num: Rep[Int], col_num: Rep[Int]): Rep[Int] = {
+      val row = rows(row_num)
+      row(col_num)
+    }
+    def update(row_num: Rep[Int], col_num: Rep[Int], x: Rep[Int]) = {
+      val row = rows(row_num)
+      row update (col_num, x)
+    }
+  }
   class IntTrie (schema: Schema) {
     import intTrieConst._
     val rawData = schema.map { x => NewArray[Int](initRawDataLen) }
-    val indexArray = schema.map { x => NewArray[Int](initRawDataLen) }
+    val indexArray = new Matrix (schema.length, initRawDataLen)
+    val valueArray = new Matrix (schema.length, initRawDataLen)
+    /*
+    val indexArray = schema.map { x => NewArray[Array[Int]](initRawDataLen) }
     val valueArray = schema.map { x => NewArray[Int](initRawDataLen) }
+    */    
     val lenArray = NewArray[Int](schema.length)
+
+    //trie in linear array
+    val uintTrie = NewArray[Int](initRawDataLen * schema.length * 2)
 
     def +=(x: Fields):Rep[Unit] = {
       val intFields = x.map {
         case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
         case RString (str: Rep[String], len: Rep[Int]) => str.toInt
       }
-
+      /*
       var diff = false
       intFields foreach { x =>
         val i = intFields indexOf x
         if (lenArray(i) == 0) diff = true
-        else if (!diff) diff = !(valueArray(i)(lenArray(i)-1) == x)
+        else if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
         if (diff) {
-          valueArray(i) update (lenArray(i), x)
-          if (i != schema.length - 1) indexArray(i)(lenArray(i)) = lenArray(i+1)          
+          valueArray update (i, lenArray(i), x)
+          if (i != schema.length - 1) {
+            indexArray update (i, lenArray(i), lenArray(i+1))
+          }
           lenArray(i) = lenArray(i) + 1
         }
       }
+      */
+
     }
+/*
+    def buildIntSet(level: Rep[Int], start: Rep[Int], end: Rep[Int], addr: Rep[Int], addr_index: Rep[Int]) = {
+      val v = valueArray(level)
+      val num = end - start
+      var addr_new = addr
+      var addr_index_new = addr_index
+      uintTrie(addr) = type_uintvec
+      uintTrie(addr + 1) = num
+
+      var i = start
+      while (i < end) {
+        //value
+        uintTrie (addr + sizeof_uint_set_header + i - start) = v(i)
+        //index. Except for the last column
+        if (level != schema.length - 1) {
+          uintTrie (addr + sizeof_uint_set_header + num + i - start) = addr_index_new
+          val num_of_children = indexArray(level, i+1) - indexArray(level, i)
+          //update the location of its child set 
+          addr_index_new = addr_index_new + sizeof_uint_set_header + 2 * num_of_children
+        }
+      }
+      addr_new = addr + sizeof_uint_set_header + 2 * num
+      (addr_new, addr_index_new)
+    }
+
+    def buildIntTrie = {
+      var level = 0
+      var set_number = 0
+      var addr_new_set = 0
+      var addr_new_set_index = sizeof_uint_set_header + 2 * lenArray(0)
+      while (level < schema.length) {
+        val num_of_sets = if (level == 0) 1 else lenArray(level - 1)
+        set_number = 0
+        while (set_number < num_of_sets) {
+          val start = if (level == 0) 0 else indexArray(level - 1, set_number)
+          val end = if (level == 0) lenArray(0) else indexArray(level - 1, set_number + 1)
+          val (addr, index) = buildIntSet(level, start, end, addr_new_set, addr_new_set_index)
+          addr_new_set = addr
+          addr_new_set_index = index
+          set_number += 1
+        }
+        level += 1
+      }
+    }
+    */
   }
   class BinTrie (schema: Schema) {
     import binTrieConst._
@@ -365,11 +437,9 @@ Data Structure Implementations
     var maxLen = initDataLen
 
     val bitvecData = schema.map { a => NewArray[Int](initDataLen) }
-    //val indexArray = schema.map { a => NewArray[Int](initDataLen) }
     val bitLen = NewArray[Int](schema.length)
     val dataLen = NewArray[Int](schema.length) //also is indexLen
     val indexLen = dataLen
-    //for debug: output the byte array
 
     def my_print = {
       var i = 0
@@ -538,7 +608,6 @@ Data Structure Implementations
         //1. build bit vector
         val bitvec = buildBitmap(col, 0, rawLen) 
         bitLen(rawData indexOf col) = bitvec.length
-        //array_copy(bitvec, 0, bitvecData(rawData indexOf col), 0, bitvec.length)
         val dest = bitvecData(rawData indexOf col)
         var i = 0
         while (i < bitvec.length) {
