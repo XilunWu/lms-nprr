@@ -302,13 +302,51 @@ Query Interpretation = Compilation
 Data Structure Implementations
 ------------------------------
 */
+  object intTrieConst{
+    val initRawDataLen  = (1 << 10)
+  }
+  
   object binTrieConst{
     val initRawDataLen  = (1 << 10)
     val initDataLen     = (1 << 14)
     val sizeOfBlockHead = 21 //bytes
+    //put all const here
+    val type_bitvec = 0
+    val type_uintvec = 1
+    val sizeof_bitvec_header = 3
+    val sizeof_uintvec_header = 2
+  }
+  class IntTrie (schema: Schema) {
+    import intTrieConst._
+    val rawData = schema.map { x => NewArray[Int](initRawDataLen) }
+    val indexArray = schema.map { x => NewArray[Int](initRawDataLen) }
+    val valueArray = schema.map { x => NewArray[Int](initRawDataLen) }
+    val lenArray = NewArray[Int](schema.length)
+
+    def +=(x: Fields):Rep[Unit] = {
+      val intFields = x.map {
+        case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
+        case RString (str: Rep[String], len: Rep[Int]) => str.toInt
+      }
+
+      var diff = false
+      intFields foreach { x =>
+        val i = intFields indexOf x
+        if (lenArray(i) == 0) diff = true
+        else if (!diff) diff = !(valueArray(i)(lenArray(i)-1) == x)
+        if (diff) {
+          valueArray(i) update (lenArray(i), x)
+          if (i != schema.length - 1) indexArray(i)(lenArray(i)) = lenArray(i+1)          
+          lenArray(i) = lenArray(i) + 1
+        }
+      }
+    }
   }
   class BinTrie (schema: Schema) {
     import binTrieConst._
+
+    val intTrie = new IntTrie (schema)
+
     //initial byte vector size = 16KB
     val rawData = schema.map { a => NewArray[Int](initRawDataLen) }
     var rawLen = 0
@@ -327,7 +365,7 @@ Data Structure Implementations
     var maxLen = initDataLen
 
     val bitvecData = schema.map { a => NewArray[Int](initDataLen) }
-    val indexArray = schema.map { a => NewArray[Int](initDataLen) }
+    //val indexArray = schema.map { a => NewArray[Int](initDataLen) }
     val bitLen = NewArray[Int](schema.length)
     val dataLen = NewArray[Int](schema.length) //also is indexLen
     val indexLen = dataLen
@@ -340,11 +378,11 @@ Data Structure Implementations
     }
 
     def += (x:Fields) = {
+      /*
       val intFields = x.map {
         case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
         case RString (str: Rep[String], len: Rep[Int]) => str.toInt
       }
-      /*
       if (rawLen == rawMaxLen) {
         val newRawData = schema.map{a => NewArray[Int](2*rawMaxLen)}   
         (rawData, newRawData).zipped.foreach {
@@ -357,13 +395,19 @@ Data Structure Implementations
       
 
       paramInfo(intFields)
-      */
       (intFields,rawData).zipped.foreach { 
         case (field, col) => col(rawLen) = field
       }
       rawLen += 1
+      */
+      intTrie += x
     }
-
+    def buildIntTrie = {
+      //build simple TrieArray from raw data
+    }
+    def buildBitTrie = {}
+    def buildHybridTrie = {}
+    /*
     def BytesToInt32(bytes:Rep[Array[Byte]]):Rep[Int] = {
       val i0 = (bytes(0).AsInstanceOf[Int] & 0xff) << 24
       val i1 = (bytes(1).AsInstanceOf[Int] & 0xff) << 16
@@ -379,7 +423,7 @@ Data Structure Implementations
       bytes(3) = (i & 0xff).AsInstanceOf[Byte]
       bytes
     }
-    /*
+    
     def pushByte(byte: Rep[Byte]) = {
       /*
       if (len == maxLen) {
@@ -412,20 +456,21 @@ Data Structure Implementations
       len += arrLen
     }
     */
+    //def decode(bitv: Rep[Array[Int]], start: Rep[Int]): Rep[Array[Int]]
     def decode(bitv: Rep[Array[Int]]): Rep[Array[Int]] = {
       val blength = bitv.length
-      val res = NewArray[Int](32 * (blength - 2))
-      val min = bitv(0)
+      val res = NewArray[Int](32 * (blength - sizeof_bitvec_header))
+      val min = bitv(1)
 
       var next_int_index = 0
-      var i = 2
+      var i = sizeof_bitvec_header
       var base = 0
       while (i < blength) {
         val bit = bitv(i)
         while (base < 32) {
           val mask = 0x80000000 >>> base
           if ((bit & mask) != 0) {
-            res(next_int_index) = min + (i - 2) * 32 + base
+            res(next_int_index) = min + (i - sizeof_bitvec_header) * 32 + base
             next_int_index += 1
           }
           base += 1
@@ -433,37 +478,36 @@ Data Structure Implementations
         base = 0
         i += 1
       }
-      if (next_int_index < res.length - 1) res(next_int_index) = -1
+      if (next_int_index < res.length) res(next_int_index) = -1
       res
     }
     def encode(arr: Rep[Array[Int]], start: Rep[Int], len: Rep[Int]): Rep[Array[Int]] = {
       val min = arr(start)
       val max = arr(start + len - 1)
-      val blength = (max + 31) / 32 + 2
+      val blength = (max + 31) / 32 + sizeof_bitvec_header
       val bitv = NewArray[Int](blength)
 
       var i = 0
       var next_bit_loc = 0
       var bit_tmp = 0
 
-      bitv(0) = min
-      bitv(1) = max
+      bitv(0) = type_bitvec
+      bitv(1) = min
+      bitv(2) = max
 
       while (i < len) {
         val diff = arr(start + i) - min
         if (diff >= 32 * next_bit_loc + 32) {
-          bitv(next_bit_loc + 2) = bit_tmp
+          bitv(next_bit_loc + sizeof_bitvec_header) = bit_tmp
           next_bit_loc += 1
           bit_tmp = 0
         }
         else {
-          //print("encode: diff = ")
-          //println(diff)
           bit_tmp = bit_tmp | (0x80000000 >>> diff)
           i += 1
         }
       }
-      bitv(next_bit_loc + 2) = bit_tmp
+      bitv(next_bit_loc + sizeof_bitvec_header) = bit_tmp
       bitv
     }
     def buildBitmap(arr: Rep[Array[Int]], start: Rep[Int], len: Rep[Int]): Rep[Array[Int]] = {
@@ -512,8 +556,9 @@ Data Structure Implementations
           }
         }*/
       }
-      uncompress
+      //uncompress
     } 
+    //used for debugging
     def uncompress: Rep[Unit] = {
       bitvecData foreach { vec =>
         val intv = decode(vec)
