@@ -1,0 +1,13 @@
+Exp
+Typ
+Sym
+
+
+emitValDef: println(remapWithRef(sym.tp) + quote(sym) + "=" + rhs + ";")
+sym.tp is of type Typ
+quote: variable name, literals...
+
+remapWithRef:
+remap(typ) + addRef(typ)
+remap: map Scala type to C(target) type
+def addRef(): String = if (cppMemMgr=="refcnt") " " else " *"

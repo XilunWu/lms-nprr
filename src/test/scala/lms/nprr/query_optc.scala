@@ -285,10 +285,11 @@ Query Interpretation = Compilation
       */
     case NprrJoin(parents, outSchema, num_threads) =>
       val tries = parents.map { p => 
-        val bintrie = new BinTrie(resultSchema(p))
-        execOp(p) { rec => bintrie += rec.fields }
+        val bintrie = new IntTrie(resultSchema(p))
+        execOp(p) { rec => bintrie += rec.fields}
+        bintrie.printTrie 
         bintrie
-        bintrie.compress
+      //bintrie.compress
       //bintrie.my_print
       }
     case PrintCSV(parent) =>
@@ -321,8 +322,12 @@ Data Structure Implementations
   class Matrix (row: Rep[Int], col: Rep[Int]) {
     val rows = NewArray[Array[Int]](row)
     var i = 0
-    //while (i < row) rows(i) = NewArray[Int](col)
-    def apply(row_num: Rep[Int]): Rep[Array[Int]] = rows(row_num)
+    while (i < row) {
+      val new_row = NewArray[Int](col)
+      rows(i) = new_row
+      i += 1
+    }
+    def apply(row_num: Rep[Int]) = rows(row_num)
     def apply(row_num: Rep[Int], col_num: Rep[Int]): Rep[Int] = {
       val row = rows(row_num)
       row(col_num)
@@ -334,13 +339,8 @@ Data Structure Implementations
   }
   class IntTrie (schema: Schema) {
     import intTrieConst._
-    val rawData = schema.map { x => NewArray[Int](initRawDataLen) }
     val indexArray = new Matrix (schema.length, initRawDataLen)
     val valueArray = new Matrix (schema.length, initRawDataLen)
-    /*
-    val indexArray = schema.map { x => NewArray[Array[Int]](initRawDataLen) }
-    val valueArray = schema.map { x => NewArray[Int](initRawDataLen) }
-    */    
     val lenArray = NewArray[Int](schema.length)
 
     //trie in linear array
@@ -351,12 +351,13 @@ Data Structure Implementations
         case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
         case RString (str: Rep[String], len: Rep[Int]) => str.toInt
       }
-      /*
+      
       var diff = false
       intFields foreach { x =>
         val i = intFields indexOf x
         if (lenArray(i) == 0) diff = true
-        else if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
+        else 
+          if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
         if (diff) {
           valueArray update (i, lenArray(i), x)
           if (i != schema.length - 1) {
@@ -365,8 +366,22 @@ Data Structure Implementations
           lenArray(i) = lenArray(i) + 1
         }
       }
-      */
+    }
 
+    def printTrie = {
+      var i = 0
+      while (i < schema.length) {
+        var j = 0
+        while (j < lenArray(i)) {
+          print(valueArray(i, j))
+          print(" ")
+          print(indexArray(i, j))
+          println(" ")
+          j += 1
+        }
+        println("")
+        i += 1
+      }
     }
 /*
     def buildIntSet(level: Rep[Int], start: Rep[Int], end: Rep[Int], addr: Rep[Int], addr_index: Rep[Int]) = {

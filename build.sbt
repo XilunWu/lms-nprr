@@ -22,3 +22,6 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 scalacOptions += "-Yvirtualize"
 
 scalacOptions += "-deprecation"
+
+//Omit warnings
+logLevel := Level.Error 

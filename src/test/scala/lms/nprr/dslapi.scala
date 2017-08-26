@@ -20,6 +20,8 @@ trait UtilOpsExp extends UtilOps with BaseExp { this: DslExp =>
     case e@StrSubHashCode(o,len) => infix_HashCode(f(o),f(len))
     case _ => super.mirror(e,f)
   }).asInstanceOf[Exp[A]]
+
+  override def printsrc(x: =>Any) { System.err.println(x) }
 }
 trait ScalaGenUtilOps extends ScalaGenBase {
   val IR: UtilOpsExp
@@ -145,9 +147,14 @@ trait DslGenC extends CGenNumericOps
   def getMemoryAllocString(count: String, memType: String): String = {
       "(" + memType + "*)malloc(" + count + " * sizeof(" + memType + "));"
   }
+
+  //try modifying remapWithRef func
+  override def remapWithRef[A](m: Typ[A]): String = remap(m) + " "
+
   override def remap[A](m: Typ[A]): String = m.toString match {
     case "java.lang.String" => "char*"
     case "Array[Char]" => "char*"
+    case "Array[Int]"  => "int*"
     case "Char" => "char"
     case _ => super.remap(m)
   }
