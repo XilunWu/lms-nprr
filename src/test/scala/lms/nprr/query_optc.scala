@@ -287,8 +287,8 @@ Query Interpretation = Compilation
       val tries = parents.map { p => 
         val bintrie = new IntTrie(resultSchema(p))
         execOp(p) { rec => bintrie += rec.fields}
-        bintrie.printTrie 
-        bintrie
+        bintrie.buildIntTrie 
+      //bintrie
       //bintrie.compress
       //bintrie.my_print
       }
@@ -339,6 +339,7 @@ Data Structure Implementations
   }
   class IntTrie (schema: Schema) {
     import intTrieConst._
+    //index(i) is the start of child of value(i)
     val indexArray = new Matrix (schema.length, initRawDataLen)
     val valueArray = new Matrix (schema.length, initRawDataLen)
     val lenArray = NewArray[Int](schema.length)
@@ -383,7 +384,7 @@ Data Structure Implementations
         i += 1
       }
     }
-/*
+
     def buildIntSet(level: Rep[Int], start: Rep[Int], end: Rep[Int], addr: Rep[Int], addr_index: Rep[Int]) = {
       val v = valueArray(level)
       val num = end - start
@@ -413,6 +414,10 @@ Data Structure Implementations
       var set_number = 0
       var addr_new_set = 0
       var addr_new_set_index = sizeof_uint_set_header + 2 * lenArray(0)
+      //make sure that indexArray(i)(lenArray(i)) = lenArray(i+1)
+      0 until (schema.length - 1) foreach { i =>
+        indexArray update (i, lenArray(i), lenArray(i + 1))
+      }
       while (level < schema.length) {
         val num_of_sets = if (level == 0) 1 else lenArray(level - 1)
         set_number = 0
@@ -425,9 +430,15 @@ Data Structure Implementations
           set_number += 1
         }
         level += 1
+        }
+      //print uintTrie
+      var i = 0
+      while (i < addr_new_set) {
+        print(uintTrie(i))
+        print(" ")
       }
+      println("")
     }
-    */
   }
   class BinTrie (schema: Schema) {
     import binTrieConst._
