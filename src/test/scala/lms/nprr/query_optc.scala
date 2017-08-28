@@ -436,6 +436,7 @@ Data Structure Implementations
       while (i < addr_new_set) {
         print(uintTrie(i))
         print(" ")
+        i += 1
       }
       println("")
     }
