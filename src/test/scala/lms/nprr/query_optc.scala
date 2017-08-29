@@ -426,7 +426,7 @@ Data Structure Implementations
           val start = if (level == 0) 0 else indexArray(level - 1, set_number)
           val end = if (level == 0) lenArray(0) else indexArray(level - 1, set_number + 1)
           val (addr, index) = buildIntSet(level, start, end, addr_new_set, addr_new_set_index)
-          print("after buildIntSet, addr = "); print(addr); print(", index = "); println(index)
+          // print("after buildIntSet, addr = "); print(addr); print(", index = "); println(index)
           addr_new_set = addr
           addr_new_set_index = index
           set_number += 1
@@ -472,7 +472,8 @@ Data Structure Implementations
           //print indent
           var i = 0
           while (i < 8 * level) { print(" "); i += 1 }
-          println(uintTrie(curr_int(level)))
+          print(uintTrie(curr_int(level)))
+          println(" --> ")
           //if it has child (findChild returns positive), go 1 level down
           val child_set = findChild(curr_set(level), curr_int(level))
           if (child_set >= 0) {
