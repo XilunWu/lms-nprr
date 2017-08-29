@@ -434,27 +434,73 @@ Data Structure Implementations
         level += 1
       }
       //print uintTrie
-      printTrie(0, 0)
+      printTrie
     }
-    def printTrie(start: Rep[Int], indent: Rep[Int]): Rep[Unit] = {
-      val tp = uintTrie(start)
-      var level = 0
+    def findChild(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
+      //return -1 if no child found
+      val index = curr_int - curr_set - sizeof_uint_set_header
+      val set_size = uintTrie(curr_set + 1)
+      val child_index_loc = curr_set + sizeof_uint_set_header + set_size + index
+      val child = uintTrie(child_index_loc)
+      //uninitialized index for last column
+      if (child == 0) -1 else child
+    }
+    //def findParent(curr: Rep[Int]): Rep[Int] = {}
+    def findNext(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
+      //return -1 if no next element found
+      val index = curr_int - curr_set - sizeof_uint_set_header
+      val set_size = uintTrie(curr_set + 1)
+      if (index >= set_size) -1
+      else curr_int + 1
+    }
+    def findFirst(set_head: Rep[Int]): Rep[Int] = {
+      val first = set_head + sizeof_uint_set_header
+      first
+    }
+
+    def printTrie: Rep[Unit] = {
+      val curr_int = NewArray[Int](schema.length)
+      val curr_set = NewArray[Int](schema.length)
+      val tp = uintTrie(0)
+      var level = 0 
+
       if (tp == type_uintvec) {
-        val num = uintTrie(start + 1)
-        //print each element
-        var i = 0
-        while (i < num) {
+        level = 0
+        curr_set(0) = 0
+        curr_int(0) = findFirst(curr_set(0))
+        while (level == -1) {
           //print indent
-          var j = 0
-          while (j < indent) { print(" "); j += 1 }
-          println(uintTrie(start + sizeof_uint_set_header + i))
-          print(" -> ")
-          val child_start = start + sizeof_uint_set_header + num + i
-          if (child_start != 0) printTrie(uintTrie(child_start), indent + 8)
-          i += 1
+          var i = 0
+          while (i < 8 * level) { print(" "); i += 1 }
+          println(uintTrie(curr_int(level)))
+          //if it has child (findChild returns positive), go 1 level down
+          val child_set = findChild(curr_set(level), curr_int(level))
+          if (child_set >= 0) {
+            level += 1
+            curr_set(level) = child_set
+            curr_int(level) = findFirst(child_set)
+          }
+          //if it has no child (findChild returns -1) 
+          else {
+            val next_int = findNext(curr_set(level), curr_int(level))
+            //go to next child
+            if (next_int >= 0) {
+              curr_int(level) = next_int
+            }
+            // or go 1 level up when reaching end. 
+            // Note that we may need go multiple levels up 
+            else {
+              level -= 1
+              var next_int = findNext(curr_set(level), curr_int(level))
+              while (next_int < 0) {
+                level -= 1
+                next_int = findNext(curr_set(level), curr_int(level))
+              }
+              if (level >= 0) curr_set(level) = next_int
+            }
+          }
         }
       }
-      unit()
     }
   }
   class BinTrie (schema: Schema) {
