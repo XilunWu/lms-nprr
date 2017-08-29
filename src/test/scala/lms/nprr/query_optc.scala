@@ -438,6 +438,7 @@ Data Structure Implementations
     }
     def printTrie(start: Rep[Int], indent: Rep[Int]): Rep[Unit] = {
       val tp = uintTrie(start)
+      var level = 0
       if (tp == type_uintvec) {
         val num = uintTrie(start + 1)
         //print each element
