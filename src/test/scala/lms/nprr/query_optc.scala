@@ -450,7 +450,7 @@ Data Structure Implementations
       //return -1 if no next element found
       val index = curr_int - curr_set - sizeof_uint_set_header
       val set_size = uintTrie(curr_set + 1)
-      if (index >= set_size) -1
+      if (index >= set_size - 1) -1
       else curr_int + 1
     }
     def findFirst(set_head: Rep[Int]): Rep[Int] = {
@@ -496,7 +496,7 @@ Data Structure Implementations
                 level -= 1
                 next_int = findNext(curr_set(level), curr_int(level))
               }
-              if (level >= 0) curr_set(level) = next_int
+              if (level >= 0) curr_int(level) = next_int
             }
           }
         }
