@@ -425,12 +425,13 @@ Data Structure Implementations
           val start = if (level == 0) 0 else indexArray(level - 1, set_number)
           val end = if (level == 0) lenArray(0) else indexArray(level - 1, set_number + 1)
           val (addr, index) = buildIntSet(level, start, end, addr_new_set, addr_new_set_index)
+          print("after buildIntSet, addr = "); print(addr); print(", index = "); println(index)
           addr_new_set = addr
           addr_new_set_index = index
           set_number += 1
         }
         level += 1
-        }
+      }
       //print uintTrie
       var i = 0
       while (i < addr_new_set) {
