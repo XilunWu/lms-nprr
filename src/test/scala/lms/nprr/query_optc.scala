@@ -473,16 +473,17 @@ Data Structure Implementations
           var i = 0
           while (i < 8 * level) { print(" "); i += 1 }
           print(uintTrie(curr_int(level)))
-          println(" --> ")
           //if it has child (findChild returns positive), go 1 level down
           val child_set = findChild(curr_set(level), curr_int(level))
           if (child_set >= 0) {
+            println(" --> ")
             level += 1
             curr_set(level) = child_set
             curr_int(level) = findFirst(child_set)
           }
           //if it has no child (findChild returns -1) 
           else {
+            println("")
             val next_int = findNext(curr_set(level), curr_int(level))
             //go to next child
             if (next_int >= 0) {
