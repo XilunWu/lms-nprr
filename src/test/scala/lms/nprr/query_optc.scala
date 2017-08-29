@@ -468,7 +468,7 @@ Data Structure Implementations
         level = 0
         curr_set(0) = 0
         curr_int(0) = findFirst(curr_set(0))
-        while (level == -1) {
+        while (level >= 0) {
           //print indent
           var i = 0
           while (i < 8 * level) { print(" "); i += 1 }
