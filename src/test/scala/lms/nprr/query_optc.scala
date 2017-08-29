@@ -404,6 +404,7 @@ Data Structure Implementations
           //update the location of its child set 
           addr_index_new = addr_index_new + sizeof_uint_set_header + 2 * num_of_children
         }
+        i += 1
       }
       addr_new = addr + sizeof_uint_set_header + 2 * num
       (addr_new, addr_index_new)
