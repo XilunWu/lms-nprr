@@ -368,7 +368,7 @@ Data Structure Implementations
         }
       }
     }
-
+/*
     def printTrie = {
       var i = 0
       while (i < schema.length) {
@@ -384,7 +384,7 @@ Data Structure Implementations
         i += 1
       }
     }
-
+*/
     def buildIntSet(level: Rep[Int], start: Rep[Int], end: Rep[Int], addr: Rep[Int], addr_index: Rep[Int]) = {
       val v = valueArray(level)
       val num = end - start
