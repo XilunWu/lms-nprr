@@ -434,13 +434,25 @@ Data Structure Implementations
         level += 1
       }
       //print uintTrie
-      var i = 0
-      while (i < addr_new_set) {
-        print(uintTrie(i))
-        print(" ")
-        i += 1
+      printTrie(0, 0)
+    }
+    def printTrie(start: Rep[Unit], indent: Rep[Int]) = {
+      val tp = uintTrie(start)
+      if (tp == type_uintvec) {
+        val num = uintTrie(start + 1)
+        //print each element
+        var i = 0
+        while (i < num) {
+          //print indent
+          var j = 0
+          while (j < indent) { print(" "); j += 1 }
+          println(uintTrie(start + sizeof_uint_set_header + i))
+          print(" -> ")
+          val child_start = start + sizeof_uint_set_header + num + i
+          if (child_start != 0) printTrie(uintTrie(child_start), indent + 8)
+          i += 1
+        }
       }
-      println("")
     }
   }
   class BinTrie (schema: Schema) {
