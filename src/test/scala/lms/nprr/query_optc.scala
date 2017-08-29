@@ -436,7 +436,7 @@ Data Structure Implementations
       //print uintTrie
       printTrie(0, 0)
     }
-    def printTrie(start: Rep[Int], indent: Rep[Int]) = {
+    def printTrie(start: Rep[Int], indent: Rep[Int]): Rep[Unit] = {
       val tp = uintTrie(start)
       if (tp == type_uintvec) {
         val num = uintTrie(start + 1)
@@ -453,6 +453,7 @@ Data Structure Implementations
           i += 1
         }
       }
+      unit()
     }
   }
   class BinTrie (schema: Schema) {
