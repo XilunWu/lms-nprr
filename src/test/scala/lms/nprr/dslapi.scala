@@ -201,7 +201,7 @@ trait DslGenC extends CGenNumericOps
       val arrType = remap(a.m)
       stream.println(arrType + "* " + quote(sym) + " = " + getMemoryAllocString(quote(n), arrType))
       //initialize: memset ( void * ptr, int value, size_t num );
-      stream.println("memset(" + quote(sym) + ", 0, " + quote(n) + " * sizeof(" + memType + "));")
+      stream.println("memset(" + quote(sym) + ", 0, " + quote(n) + " * sizeof(" + arrType + "));")
     case ArrayApply(x,n) => emitValDef(sym, quote(x) + "[" + quote(n) + "]")
     case ArrayUpdate(x,n,y) => stream.println(quote(x) + "[" + quote(n) + "] = " + quote(y) + ";")
     case PrintLn(s) => stream.println("printf(\"" + format(s) + "\\n\"," + quoteRawString(s) + ");")
