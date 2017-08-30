@@ -1,0 +1,16 @@
+17/08/23
+	1. array_copy causes error in code writing phase. Illegal sharing of mutable objects. 
+	2. arr foreach { e => e foreach { print } } Error: don't know how to generate code.
+	ArrayForeach(Sym(237),Sym(258),Block(Sym(261))
+	3. var arr = vector.map { v => NewArray[Int](length) } gives ""Could not find implicit value for evidence parameter" error message
+
+Cause: 
+	1. these features are not supported for generating C code
+	2. Typ[Vector[Rep[Array[Int]]]] doen'st exist. It should be Typ[Rep[...]]. So 2-d array can be Rep[Array[Array[Int]]]
+
+17/08/25
+	4. The illegal sharing problem is still unknown. But it doesn't affect code gen....
+
+17/08/28
+	5. [error] (run-main-0) java.lang.StackOverflowError When I'm trying to write some recursive functions. I guess it's because Scala can't analysis when it will terminate?
+

@@ -1,0 +1,3 @@
+LMS-NPRR research note
+
+1. One point you may be interested in: To how much extent should LMS inline foreach? Expand code every foreach call site as possible or use while-loop anywhere? 

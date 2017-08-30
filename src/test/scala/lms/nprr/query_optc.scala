@@ -337,9 +337,30 @@ Data Structure Implementations
       row update (col_num, x)
     }
   }
+
+  trait TrieIterator(Trie: trie) {
+    //element-level method for traversing/searching (LFTJ)
+
+    //set-level method 
+    def findChildSet
+    def setCurrSet
+    def findElemInCurrSet
+    def 
+  }
+
+  trait Trie(schema: Schema) {
+    //method for loading data and building
+    def +=(x: Fields):Rep[Unit]
+    def buildTrie: Rep[Unit]
+
+    //method for debugging
+    def printTrie: Rep[Unit]
+  }
+
   class IntTrie (schema: Schema) {
     import intTrieConst._
     //index(i) is the start of child of value(i)
+    //the intermediate datum used while generating uintTrie
     val indexArray = new Matrix (schema.length, initRawDataLen)
     val valueArray = new Matrix (schema.length, initRawDataLen)
     val lenArray = NewArray[Int](schema.length)
