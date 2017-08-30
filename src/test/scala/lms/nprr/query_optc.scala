@@ -433,8 +433,7 @@ Data Structure Implementations
         }
         level += 1
       }
-      //print uintTrie
-      printTrie
+      //printTrie
     }
     def findChild(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
       //return -1 if no child found
@@ -445,7 +444,7 @@ Data Structure Implementations
       //uninitialized index for last column
       if (child == 0) -1 else child
     }
-    //def findParent(curr: Rep[Int]): Rep[Int] = {}
+    def findParent(curr: Rep[Int]): Rep[Int] = {}
     def findNext(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
       //return -1 if no next element found
       val index = curr_int - curr_set - sizeof_uint_set_header
