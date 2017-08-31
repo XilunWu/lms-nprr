@@ -304,7 +304,7 @@ Query Interpretation = Compilation
 Algorithm Implementations
 */
 
-  class NprrJoinAlgo(List[TrieIterator] tries, schema: Schema) {
+  class NprrJoinAlgo( tries : List[TrieIterator], schema : Schema) {
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
 
@@ -316,6 +316,8 @@ Algorithm Implementations
       val inter_data_len = NewArray[Int](schema.length)
 
       var level = 0
+      // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
+      init
       while (level >= 0) {
         // Option:
         // 1. Have an expanded if-then-else branch for each level
@@ -326,7 +328,8 @@ Algorithm Implementations
           // up(): 1 level up
           level -= 1
           // next(): then find next in set on level
-          curr_res_index(schema.length - 1) += 1
+          curr_inter_data_index( schema.length - 1 )  =  
+            curr_inter_data_index( schema.length - 1 ) + 1
         } 
         else if ( level == 0 ) { level = join_on_level( 0 ) }
         else if ( level == 1 ) { level = join_on_level( 1 ) }
@@ -338,26 +341,35 @@ Algorithm Implementations
           // up()
           val new_level = level - 1
           // next() if not the first attribute
-          if ( level != 0 ) curr_inter_data_index( level - 1 ) += 1
+          if ( level != 0 ) 
+            curr_inter_data_index( level - 1 ) = 
+              curr_inter_data_index( level - 1 ) + 1
           // level -= 1
           new_level
         } else {
           val new_level = level + 1
           // open()
-          intersect_on_level( level )
-          // modify curr_set, curr_res_index, and res_len
-          tries.filter(contains(level)).foreach { it =>
+          val len = intersect_on_level( level )
+          // modify curr_set (= child), curr_inter_data_index (= 0), and inter_data_len
+          curr_inter_data_index( level ) = 0
+          inter_data_len( level ) = len
+          tries.filter( t => t.getTrie.getSchema.contains(level)).foreach { it =>
+            // col in Matrix
             val relation = tries indexOf it
+            // row in Matrix
             val s = it.getTrie.getSchema
-            val attr_index = s indexOf schema ( level )
+            val attr_index = s indexOf ( schema ( level ))
             val next_attr = s( attr_index + 1 )
             val next_attr_index = schema indexOf next_attr
+            // child set 
             val curr_int = inter_data ( 
               level, 
               curr_inter_data_index( level ))
-            val curr_int_in_set = 
-            val child = it.findChildSet( )
-            curr_set update (next_attr_index, relation, )
+            // find the child set of the current element in curr_set at level 
+            val child = it.findChildSet( 
+              curr_int, 
+              curr_set (level, relation))
+            curr_set update ( next_attr_index, relation, child )
           }
           // level += 1
           new_level
@@ -365,8 +377,20 @@ Algorithm Implementations
       }
       def atEnd (level : Int) : Rep[Boolean] = 
         curr_inter_data_index(level) >= inter_data_len(level)
-      def intersect_on_level (level : Int) : Rep[Unit] = {
-
+      def intersect_on_level (level : Int) : Rep[Int] = {
+        // intersect
+        // and put result into inter_data ( level )
+        0 
+      }
+      def init = {
+        curr_inter_data_index( 0 ) = 0
+        tries.foreach { it => 
+          val attr = it.getTrie.getSchema ( 0 )
+          val attr_index = schema indexOf attr
+          val relation = tries indexOf it
+          val head = it.findFirstSet
+          curr_set update ( attr_index, relation, head )
+        }
       }
     }
   }
@@ -409,20 +433,22 @@ Data Structure Implementations
     }
   }
 
-  trait TrieIterator(Trie: trie) {
+  trait TrieIterator {
+    // class UIntTrieIterator (uIntTrie) extends TrieIterator
     // get
-    def getTrie = trie
+    def getTrie: Trie
 
     // element-level method for traversing/searching (LFTJ)
  
     // set-level method 
-    def findChildSet
+    def findChildSet ( data : Rep[Int], set : Rep[Int] ) : Rep[Int]
+    def findFirstSet : Rep[Int]
     def setCurrSet
     def findElemInCurrSet
-    def 
   }
 
-  trait Trie(schema: Schema) {
+  trait Trie {
+    val schema : Schema
     // get
     def getSchema = schema
 
@@ -542,7 +568,7 @@ Data Structure Implementations
       //uninitialized index for last column
       if (child == 0) -1 else child
     }
-    def findParent(curr: Rep[Int]): Rep[Int] = {}
+    //def findParent(curr: Rep[Int]): Rep[Int] = {}
     def findNext(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
       //return -1 if no next element found
       val index = curr_int - curr_set - sizeof_uint_set_header
