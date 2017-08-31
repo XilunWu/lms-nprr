@@ -348,9 +348,11 @@ Algorithm Implementations
           new_level
         } else {
           val new_level = level + 1
-          // open()
+          // open(): update curr_set ( new level )
           val len = intersect_on_level( level )
           // modify curr_set (= child), curr_inter_data_index (= 0), and inter_data_len
+          // This is incorrent: 
+          /*
           curr_inter_data_index( level ) = 0
           inter_data_len( level ) = len
           tries.filter( t => t.getTrie.getSchema.contains(level)).foreach { it =>
@@ -371,6 +373,7 @@ Algorithm Implementations
               curr_set (level, relation))
             curr_set update ( next_attr_index, relation, child )
           }
+          */
           // level += 1
           new_level
         }
