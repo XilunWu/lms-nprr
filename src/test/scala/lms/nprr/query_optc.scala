@@ -307,15 +307,11 @@ Algorithm Implementations
   class NprrJoinAlgo(List[TrieIterator] tries, schema: Schema) {
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
-    val curr_set = new Matrix(schema.length, tries.length)
-    // first try: store the result into a fix sized matrix. 
-    val res = new Matrix(1 << 10, schema.length)
-    val curr_res_index = NewArray[Int](schema.length)
-    val res_len = NewArray[Int](schema.length)
 
     //param: yld is the function we'll introduce later, from NprrJoin
     def run(): Rep[Unit] = {
-      val inter_data = new Matrix(1 << 8, schema.length)
+      val curr_set = new Matrix(schema.length, tries.length)
+      val inter_data = new Matrix( schema.length, 1 << 8 )
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
@@ -331,26 +327,38 @@ Algorithm Implementations
           level -= 1
           // next(): then find next in set on level
           curr_res_index(schema.length - 1) += 1
-        }
-        else if (level == 0) { level = join_on_level(0) }
-        else if (level == 1) { level = join_on_level(1) }
+        } 
+        else if ( level == 0 ) { level = join_on_level( 0 ) }
+        else if ( level == 1 ) { level = join_on_level( 1 ) }
         else {} //Empty
       }
 
       def join_on_level(level: Int): Rep[Int] = {
-        if (atEnd(level)) {
+        if ( atEnd( level )) {
           // up()
           val new_level = level - 1
           // next() if not the first attribute
-          if ( level != 0 ) curr_inter_data_index(level-1) += 1
+          if ( level != 0 ) curr_inter_data_index( level - 1 ) += 1
           // level -= 1
           new_level
         } else {
           val new_level = level + 1
           // open()
-          intersect_on_level(level)
+          intersect_on_level( level )
           // modify curr_set, curr_res_index, and res_len
-
+          tries.filter(contains(level)).foreach { it =>
+            val relation = tries indexOf it
+            val s = it.getTrie.getSchema
+            val attr_index = s indexOf schema ( level )
+            val next_attr = s( attr_index + 1 )
+            val next_attr_index = schema indexOf next_attr
+            val curr_int = inter_data ( 
+              level, 
+              curr_inter_data_index( level ))
+            val curr_int_in_set = 
+            val child = it.findChildSet( )
+            curr_set update (next_attr_index, relation, )
+          }
           // level += 1
           new_level
         }
@@ -358,7 +366,7 @@ Algorithm Implementations
       def atEnd (level : Int) : Rep[Boolean] = 
         curr_inter_data_index(level) >= inter_data_len(level)
       def intersect_on_level (level : Int) : Rep[Unit] = {
-        
+
       }
     }
   }
@@ -402,9 +410,12 @@ Data Structure Implementations
   }
 
   trait TrieIterator(Trie: trie) {
-    //element-level method for traversing/searching (LFTJ)
+    // get
+    def getTrie = trie
 
-    //set-level method 
+    // element-level method for traversing/searching (LFTJ)
+ 
+    // set-level method 
     def findChildSet
     def setCurrSet
     def findElemInCurrSet
@@ -412,7 +423,10 @@ Data Structure Implementations
   }
 
   trait Trie(schema: Schema) {
-    //method for loading data and building
+    // get
+    def getSchema = schema
+
+    // method for loading data and building
     def +=(x: Fields):Rep[Unit]
     def buildTrie: Rep[Unit]
 
