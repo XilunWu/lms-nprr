@@ -324,6 +324,7 @@ Algorithm Implementations
         // 2. Not expand at all
         if (level == schema.length - 1) {
           // yld each result because we've found them (stored in inter_data)
+          intersect_on_level(schema.length - 1)
           // yld(tuple)
           // up(): 1 level up
           level -= 1
@@ -348,29 +349,32 @@ Algorithm Implementations
           new_level
         } else {
           val new_level = level + 1
-          // open(): update curr_set ( new level )
-          val len = intersect_on_level( level )
-          // modify curr_set (= child), curr_inter_data_index (= 0), and inter_data_len
-          curr_inter_data_index( level ) = 0
-          inter_data_len( level ) = len
-          tries.filter( t => t.getTrie.getSchema.contains(level)).foreach { it =>
+          // open(): update curr_set ( new_level )
+          tries.filter( t => t.getTrie.getSchema.contains(level + 1)).foreach { it =>
             // col in Matrix
             val relation = tries indexOf it
             // row in Matrix
             val s = it.getTrie.getSchema
-            val attr_index = s indexOf ( schema ( level ))
-            val next_attr = s( attr_index + 1 )
-            val next_attr_index = schema indexOf next_attr
-            // child set 
-            val curr_int = inter_data ( 
-              level, 
-              curr_inter_data_index( level ))
-            // find the child set of the current element in curr_set at level 
-            val child = it.findChildSet( 
-              curr_int, 
-              curr_set (level, relation))
-            curr_set update ( next_attr_index, relation, child )
+            val attr_index = s indexOf ( schema ( level + 1))
+            // if it's the first attr. don't update curr_set
+            // otherwise, assign curr_set to the child set 
+            // of the curr set on the previous level
+            if (attr_index != 0) {
+              val prev_attr = s( attr_index - 1 )
+              val prev_attr_index = schema indexOf prev_attr              
+              val curr_int = inter_data ( 
+                prev_attr_index, 
+                curr_inter_data_index( prev_attr_index ))    
+              val child = it.findChildSet( 
+                curr_int, 
+                curr_set (prev_attr_index, relation))
+              curr_set update ( level + 1, relation, child )
+            }
           }
+          val len = intersect_on_level( level + 1 )
+          // modify curr_set (= child), curr_inter_data_index (= 0), and inter_data_len
+          curr_inter_data_index( level + 1 ) = 0
+          inter_data_len( level + 1 ) = len
           // level += 1
           new_level
         }
@@ -380,6 +384,17 @@ Algorithm Implementations
       def intersect_on_level (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
+        val it = tries.filter( t => t.getTrie.getSchema.contains(level))
+        val arr = it map getTrie
+        val head = it map { x => 
+          val relation = tries indexOf x
+          curr_set(level, relation)
+        }
+        var flag = -1
+        while (flag < 0) {
+          
+        }
+        
         0 
       }
       def init = {
@@ -392,12 +407,22 @@ Algorithm Implementations
           curr_set update ( attr_index, relation, head )
         }
       }
+      def find
     }
   }
 /**
 Data Structure Implementations
 ------------------------------
 */
+  /*
+  def foreach[T] (arr: Rep[Array[T]], func: Rep[T] => Rep[Unit]) {
+    var i = 0
+    while (i < arr.length) {
+      func(arr(i))
+      i += 1
+    }
+  }
+  */
   object intTrieConst{
     val initRawDataLen  = (1 << 10)
     val sizeof_uint_set_header = 2
@@ -433,18 +458,17 @@ Data Structure Implementations
     }
   }
 
-  trait TrieIterator {
+  class TrieIterator (trie: IntTrie) {
     // class UIntTrieIterator (uIntTrie) extends TrieIterator
-    // get
-    def getTrie: Trie
+    def getTrie: IntTrie = trie
 
     // element-level method for traversing/searching (LFTJ)
  
     // set-level method 
     def findChildSet ( data : Rep[Int], set : Rep[Int] ) : Rep[Int]
     def findFirstSet : Rep[Int]
-    def setCurrSet
-    def findElemInCurrSet
+    //def setCurrSet
+    //def findElemInCurrSet
   }
 
   trait Trie {
