@@ -292,6 +292,7 @@ Query Interpretation = Compilation
       //bintrie.compress
       //bintrie.my_print
       }
+
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -304,7 +305,7 @@ Query Interpretation = Compilation
 Algorithm Implementations
 */
 
-  class NprrJoinAlgo( tries : List[TrieIterator], schema : Schema) {
+  class NprrJoinAlgo( tries : Vector[IntTrie], schema : Schema) {
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
 
@@ -365,7 +366,7 @@ Algorithm Implementations
               val curr_int = inter_data ( 
                 prev_attr_index, 
                 curr_inter_data_index( prev_attr_index ))    
-              val child = it.findChildSet( 
+              val child = it.findChildSetByValue( 
                 curr_int, 
                 curr_set (prev_attr_index, relation))
               curr_set update ( level + 1, relation, child )
@@ -381,22 +382,23 @@ Algorithm Implementations
       }
       def atEnd (level : Int) : Rep[Boolean] = 
         curr_inter_data_index(level) >= inter_data_len(level)
-      def intersect_on_level (level : Int) : Rep[Int] = {
+      def intersect_on_level (level : Int) : Rep[Int] = 
+        intersect_on_level_leapfrog(level)
+      def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
         val it = tries.filter( t => t.getTrie.getSchema.contains(level))
-        val arr = it map getTrie
-        val head = it map { x => 
-          val relation = tries indexOf x
-          curr_set(level, relation)
-        }
-        var flag = -1
-        while (flag < 0) {
-          
-        }
-        
-        0 
+        val arr = NewArray[[Array[Int]]]( it.length )
+        { it foreach { t =>
+            trie_arr(tries indexOf t) = t.getTrie
+         }}
+        val head = NewArray[Int]( it.length )
+        { it foreach { t =>
+            head(it indexOf t) = curr_set(level, tries indexOf t)
+          }}
+        leapfrog_on_level( level, arr, head )
       }
+
       def init = {
         curr_inter_data_index( 0 ) = 0
         tries.foreach { it => 
@@ -407,7 +409,81 @@ Algorithm Implementations
           curr_set update ( attr_index, relation, head )
         }
       }
-      def find
+
+      // return len of intersection set
+      def leapfrog_on_level(level: Int, 
+                                 arr: Rep[Array[Array[Int]]], 
+                                 head: Rep[Array[Int]]) = {
+        var len = 0
+        val number_of_relations = tries.filter( t => t.getTrie.getSchema.contains(level)).length
+        val arr_pos = NewArray[Int](number_of_relations)
+        // One round of leapfrog will make arr(i, set, pos) as max
+        // and arr(i+1, set, pos) as min
+        {
+          var curr_num = get_uint_trie_elem(arr(0), head(0), 0)            
+          var i = 1
+          while ( i < it.length ) {
+            arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
+            curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
+            i += 1
+          }
+        }
+        var i = 0
+        while ( ! uint_trie_reach_end(arr(i), head(i), arr_pos(i)) ) {
+          // if we found an intersection
+          val min = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
+          val max = 
+            if (i == 0) get_uint_trie_elem(arr(number_of_relations - 1), 
+              head(number_of_relations - 1), 
+              arr_pos(number_of_relations - 1))
+            else get_uint_trie_elem(arr(i - 1), head(i - 1), arr_pos(i - 1))
+          if (max == min) {
+            inter_data update (level, len, max)
+            len += 1
+            arr_pos(i) = arr_pos(i) + 1
+          } else {
+            arr_pos(i) = uint_trie_geq(arr(i), head(i), max, arr_pos(i))
+          }
+          if (i == number_of_relations - 1) i = 0
+          else i += 1
+        }
+        len
+      }
+    }
+
+    // search functions for UInteTrie
+    def get_uint_trie_elem(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
+      val start_of_elem = intTrieConst.sizeof_uint_set_header
+      arr(head + start_of_elem + index)
+    }
+    def uint_trie_reach_end(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
+      val card = arr(head + intTrieConst.loc_of_cardinality)
+      index >= card
+    }
+    // function uint_trie_geq returns the index of first element in array
+    // which is no less than value. 
+    def uint_trie_geq(arr: Rep[Array[Int]], head: Rep[Int], value: Rep[Int], init_start: Rep[Int]) = {
+      val card = arr(head + intTrieConst.loc_of_cardinality)
+      var start = head + intTrieConst.sizeof_uint_set_header + init_start
+      var end = head + intTrieConst.sizeof_uint_set_header + card
+      // search among arr(start) and arr(end)
+      var size = end - start
+      while (size > 5) {
+        val mid_point = (start + end) / 2
+        val pivot = arr(mid_point)
+        if (pivot < value) start = mid_point + 1
+        else if (pivot > value) end = mid_point + 1
+        else {
+          start = mid_point
+          end = mid_point + 1
+        }
+        size = end - start
+      }
+      var i = 0
+      while (i < size && arr(start + i) < value) {
+        i += 1
+      }
+      start + i
     }
   }
 /**
@@ -425,6 +501,8 @@ Data Structure Implementations
   */
   object intTrieConst{
     val initRawDataLen  = (1 << 10)
+    val loc_of_type = 0
+    val loc_of_cardinality = 1
     val sizeof_uint_set_header = 2
     val type_uintvec = 1
   }
@@ -464,24 +542,9 @@ Data Structure Implementations
 
     // element-level method for traversing/searching (LFTJ)
  
-    // set-level method 
-    def findChildSet ( data : Rep[Int], set : Rep[Int] ) : Rep[Int]
-    def findFirstSet : Rep[Int]
+
     //def setCurrSet
     //def findElemInCurrSet
-  }
-
-  trait Trie {
-    val schema : Schema
-    // get
-    def getSchema = schema
-
-    // method for loading data and building
-    def +=(x: Fields):Rep[Unit]
-    def buildTrie: Rep[Unit]
-
-    //method for debugging
-    def printTrie: Rep[Unit]
   }
 
   class IntTrie (schema: Schema) {
@@ -494,6 +557,8 @@ Data Structure Implementations
 
     //trie in linear array
     val uintTrie = NewArray[Int](initRawDataLen * schema.length * 2)
+
+    def getTrie = uIntTrie
 
     def +=(x: Fields):Rep[Unit] = {
       val intFields = x.map {
@@ -600,10 +665,37 @@ Data Structure Implementations
       if (index >= set_size - 1) -1
       else curr_int + 1
     }
-    def findFirst(set_head: Rep[Int]): Rep[Int] = {
+    def findFirstElemInSet(set_head: Rep[Int]): Rep[Int] = {
       val first = set_head + sizeof_uint_set_header
       first
     }
+    // set-level method 
+    def findChildSetByValue ( value : Rep[Int], set : Rep[Int] ) = {
+      // This can be done by helper function. Replace it later
+      val arr = uintTrie
+      val card = arr(set + intTrieConst.loc_of_cardinality)
+      var start = set + intTrieConst.sizeof_uint_set_header
+      var end = set + intTrieConst.sizeof_uint_set_header + card
+      var size = end - start
+      while (size > 5) {
+        val mid_point = (start + end) / 2
+        val pivot = arr(mid_point)
+        if (pivot < value) start = mid_point + 1
+        else if (pivot > value) end = mid_point + 1
+        else {
+          start = mid_point
+          end = mid_point + 1
+        }
+        size = end - start
+      }
+      var i = 0
+      while (i < size && arr(start + i) < value) {
+        i += 1
+      }
+      val index = start + i
+      findChild(set, index)
+    }
+    def findFirstSet : Rep[Int] = uintTrie
 
     def printTrie: Rep[Unit] = {
       val curr_int = NewArray[Int](schema.length)
@@ -614,7 +706,7 @@ Data Structure Implementations
       if (tp == type_uintvec) {
         level = 0
         curr_set(0) = 0
-        curr_int(0) = findFirst(curr_set(0))
+        curr_int(0) = findFirstElemInSet(curr_set(0))
         while (level >= 0) {
           //print indent
           var i = 0
@@ -626,7 +718,7 @@ Data Structure Implementations
             println(" --> ")
             level += 1
             curr_set(level) = child_set
-            curr_int(level) = findFirst(child_set)
+            curr_int(level) = findFirstElemInSet(child_set)
           }
           //if it has no child (findChild returns -1) 
           else {
