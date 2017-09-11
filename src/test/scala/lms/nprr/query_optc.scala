@@ -322,8 +322,8 @@ Algorithm Implementations
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
       while (level >= 0) {
-        print("curr level: ")
-        println(level)
+        //print("curr level: ")
+        //println(level)
         // Option:
         // 1. Have an expanded if-then-else branch for each level
         // 2. Not expand at all
