@@ -350,8 +350,16 @@ Algorithm Implementations
           // up(): 1 level up
           level -= 1
         } 
-        else if ( level == 0 ) { level = join_on_level( 0 ) }
-        else if ( level == 1 ) { level = join_on_level( 1 ) }
+        else if ( level == 0 ) { 
+          if (schema.length > 1)
+            level = join_on_level( 0 )
+          unit() 
+        }
+        else if ( level == 1 ) { 
+          if (schema.length > 2)
+            level = join_on_level( 1 ) 
+          unit()
+        }
         else {} //Empty
       }
 
