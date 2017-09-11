@@ -366,10 +366,10 @@ Algorithm Implementations
           // level -= 1
           new_level
         } else {
-          println(inter_data(level, curr_inter_data_index(level)))
+          //println(inter_data(level, curr_inter_data_index(level)))
           val new_level = level + 1
           // open(): update curr_set ( new_level )
-          tries.filter( t => t.getSchema.contains(level + 1)).foreach { it =>
+          tries.filter( t => t.getSchema.contains(schema(level + 1))).foreach { it =>
             // col in Matrix
             val relation = tries indexOf it
             // row in Matrix
@@ -405,7 +405,7 @@ Algorithm Implementations
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
-        val it = tries.filter( t => t.getSchema.contains(level))
+        val it = tries.filter( t => t.getSchema.contains(schema(level)))
         val arr = NewArray[Array[Int]]( it.length )
         it foreach { t =>
             arr update (tries indexOf t, t.getTrie)
@@ -435,7 +435,7 @@ Algorithm Implementations
                             arr: Rep[Array[Array[Int]]], 
                             head: Rep[Array[Int]]) = {
         var len = 0
-        val number_of_relations = tries.filter( t => t.getSchema.contains(level)).length
+        val number_of_relations = tries.filter( t => t.getSchema.contains(schema(level))).length
         val arr_pos = NewArray[Int](number_of_relations)
         // One round of leapfrog will make arr(i, set, pos) as max
         // and arr(i+1, set, pos) as min
@@ -443,8 +443,6 @@ Algorithm Implementations
         var i = 1
         while ( i < number_of_relations ) {
           arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
-          print("arr_pos ")
-          println(arr_pos(i))
           curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
           i += 1
         }
