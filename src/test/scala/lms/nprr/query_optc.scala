@@ -330,7 +330,7 @@ Algorithm Implementations
         if (level == schema.length - 1) {
           // yld each result because we've found them (stored in inter_data)
           intersect_on_level(schema.length - 1)
-          // yld(tuple)
+          // TODO: yld(tuple)
           var row = 0
           while (row < schema.length - 1) {
             print(inter_data(row, curr_inter_data_index(row)))
