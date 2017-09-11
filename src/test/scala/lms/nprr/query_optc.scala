@@ -288,10 +288,12 @@ Query Interpretation = Compilation
         val bintrie = new IntTrie(resultSchema(p))
         execOp(p) { rec => bintrie += rec.fields}
         bintrie.buildIntTrie 
-      //bintrie
+        bintrie
       //bintrie.compress
       //bintrie.my_print
       }
+      val nprr = new NprrJoinAlgo(tries, outSchema)
+      nprr.run
 
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
@@ -305,7 +307,7 @@ Query Interpretation = Compilation
 Algorithm Implementations
 */
 
-  class NprrJoinAlgo( tries : Vector[IntTrie], schema : Schema) {
+  class NprrJoinAlgo( tries : List[IntTrie], schema : Schema) {
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
 
@@ -320,6 +322,8 @@ Algorithm Implementations
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
       while (level >= 0) {
+        print("curr level: ")
+        println(level)
         // Option:
         // 1. Have an expanded if-then-else branch for each level
         // 2. Not expand at all
@@ -327,11 +331,24 @@ Algorithm Implementations
           // yld each result because we've found them (stored in inter_data)
           intersect_on_level(schema.length - 1)
           // yld(tuple)
+          var row = 0
+          while (row < schema.length - 1) {
+            print(inter_data(row, curr_inter_data_index(row)))
+            print(" ")
+            row += 1
+          }
+          println("")
+          var i = 0
+          while (i < inter_data_len(schema.length - 1)) {
+            println(inter_data(schema.length-1, i))
+            i += 1
+          }
+          // next(): then find next in set on level
+          if (schema.length > 1)
+            curr_inter_data_index( schema.length - 2 )  =  
+              curr_inter_data_index( schema.length - 2 ) + 1
           // up(): 1 level up
           level -= 1
-          // next(): then find next in set on level
-          curr_inter_data_index( schema.length - 1 )  =  
-            curr_inter_data_index( schema.length - 1 ) + 1
         } 
         else if ( level == 0 ) { level = join_on_level( 0 ) }
         else if ( level == 1 ) { level = join_on_level( 1 ) }
@@ -351,11 +368,11 @@ Algorithm Implementations
         } else {
           val new_level = level + 1
           // open(): update curr_set ( new_level )
-          tries.filter( t => t.getTrie.getSchema.contains(level + 1)).foreach { it =>
+          tries.filter( t => t.getSchema.contains(level + 1)).foreach { it =>
             // col in Matrix
             val relation = tries indexOf it
             // row in Matrix
-            val s = it.getTrie.getSchema
+            val s = it.getSchema
             val attr_index = s indexOf ( schema ( level + 1))
             // if it's the first attr. don't update curr_set
             // otherwise, assign curr_set to the child set 
@@ -387,22 +404,22 @@ Algorithm Implementations
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
-        val it = tries.filter( t => t.getTrie.getSchema.contains(level))
-        val arr = NewArray[[Array[Int]]]( it.length )
-        { it foreach { t =>
-            trie_arr(tries indexOf t) = t.getTrie
-         }}
+        val it = tries.filter( t => t.getSchema.contains(level))
+        val arr = NewArray[Array[Int]]( it.length )
+        it foreach { t =>
+            arr update (tries indexOf t, t.getTrie)
+        }
         val head = NewArray[Int]( it.length )
-        { it foreach { t =>
+        it foreach { t =>
             head(it indexOf t) = curr_set(level, tries indexOf t)
-          }}
+        }
         leapfrog_on_level( level, arr, head )
       }
 
       def init = {
         curr_inter_data_index( 0 ) = 0
         tries.foreach { it => 
-          val attr = it.getTrie.getSchema ( 0 )
+          val attr = it.getSchema ( 0 )
           val attr_index = schema indexOf attr
           val relation = tries indexOf it
           val head = it.findFirstSet
@@ -412,23 +429,22 @@ Algorithm Implementations
 
       // return len of intersection set
       def leapfrog_on_level(level: Int, 
-                                 arr: Rep[Array[Array[Int]]], 
-                                 head: Rep[Array[Int]]) = {
+                            arr: Rep[Array[Array[Int]]], 
+                            head: Rep[Array[Int]]) = {
         var len = 0
-        val number_of_relations = tries.filter( t => t.getTrie.getSchema.contains(level)).length
+        val number_of_relations = tries.filter( t => t.getSchema.contains(level)).length
         val arr_pos = NewArray[Int](number_of_relations)
         // One round of leapfrog will make arr(i, set, pos) as max
         // and arr(i+1, set, pos) as min
-        {
-          var curr_num = get_uint_trie_elem(arr(0), head(0), 0)            
-          var i = 1
-          while ( i < it.length ) {
-            arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
-            curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
-            i += 1
-          }
+        var curr_num = get_uint_trie_elem(arr(0), head(0), 0)            
+        var i = 1
+        while ( i < number_of_relations ) {
+          arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
+          curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
+          i += 1
         }
-        var i = 0
+      
+        i = 0
         while ( ! uint_trie_reach_end(arr(i), head(i), arr_pos(i)) ) {
           // if we found an intersection
           val min = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
@@ -558,7 +574,8 @@ Data Structure Implementations
     //trie in linear array
     val uintTrie = NewArray[Int](initRawDataLen * schema.length * 2)
 
-    def getTrie = uIntTrie
+    def getTrie = uintTrie
+    def getSchema = schema
 
     def +=(x: Fields):Rep[Unit] = {
       val intFields = x.map {
@@ -695,7 +712,7 @@ Data Structure Implementations
       val index = start + i
       findChild(set, index)
     }
-    def findFirstSet : Rep[Int] = uintTrie
+    def findFirstSet : Rep[Int] = 0
 
     def printTrie: Rep[Unit] = {
       val curr_int = NewArray[Int](schema.length)
