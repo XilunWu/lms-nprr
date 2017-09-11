@@ -1,0 +1,16 @@
+Bitmap operations:
+1. __builtin_ctzl(x)
+   Returns the number of trailing 0-bits in x, starting at the least significant bit position. If x is 0, the result is undefined.
+
+2. __builtin_popcountl(x)
+   Returns the number of 1-bits in x.
+
+3. t = x & -x
+   t is all 0's except at the location of last 1 in x
+   Example: x = 0x 0101 1010; -x = 0x 1010 0110; t = 0x 0000 0010
+
+4. x &= x - 1
+   flip the last 1 in x to a 0.
+   Example: x = 0x 0101 1010; x - 1 = 0x 0101 1001; x & x - 1 = 0x 0101 1000
+
+5. 
