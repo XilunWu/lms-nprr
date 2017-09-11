@@ -426,6 +426,8 @@ Algorithm Implementations
           val head = it.findFirstSet
           curr_set update ( attr_index, relation, head )
         }
+        // conduct intersection on level 0
+        inter_data_len(0) = intersect_on_level(0)
       }
 
       // return len of intersection set
