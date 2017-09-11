@@ -366,6 +366,7 @@ Algorithm Implementations
           // level -= 1
           new_level
         } else {
+          println(inter_data(level, curr_inter_data_index(level)))
           val new_level = level + 1
           // open(): update curr_set ( new_level )
           tries.filter( t => t.getSchema.contains(level + 1)).foreach { it =>
