@@ -443,6 +443,8 @@ Algorithm Implementations
         var i = 1
         while ( i < number_of_relations ) {
           arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
+          print("arr_pos ")
+          println(arr_pos(i))
           curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
           i += 1
         }
