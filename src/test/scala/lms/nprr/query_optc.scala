@@ -395,8 +395,9 @@ Algorithm Implementations
                 prev_attr_index, 
                 curr_inter_data_index( prev_attr_index ))    
               val child = it.findChildSetByValue( 
-                curr_int, 
-                curr_set (prev_attr_index, relation))
+                curr_set (prev_attr_index, relation),
+                curr_int
+                )
               curr_set update ( level + 1, relation, child )
             }
           }
@@ -682,29 +683,16 @@ Data Structure Implementations
       }
       //printTrie
     }
-    def findChild(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
+    def findChild(curr_set: Rep[Int], index: Rep[Int]): Rep[Int] = {
       //return -1 if no child found
-      val index = curr_int - curr_set - sizeof_uint_set_header
-      val set_size = uintTrie(curr_set + 1)
+      val set_size = uintTrie(curr_set + intTrieConst.loc_of_cardinality)
       val child_index_loc = curr_set + sizeof_uint_set_header + set_size + index
       val child = uintTrie(child_index_loc)
       //uninitialized index for last column
       if (child == 0) -1 else child
     }
-    //def findParent(curr: Rep[Int]): Rep[Int] = {}
-    def findNext(curr_set: Rep[Int], curr_int: Rep[Int]): Rep[Int] = {
-      //return -1 if no next element found
-      val index = curr_int - curr_set - sizeof_uint_set_header
-      val set_size = uintTrie(curr_set + 1)
-      if (index >= set_size - 1) -1
-      else curr_int + 1
-    }
-    def findFirstElemInSet(set_head: Rep[Int]): Rep[Int] = {
-      val first = set_head + sizeof_uint_set_header
-      first
-    }
     // set-level method 
-    def findChildSetByValue ( value : Rep[Int], set : Rep[Int] ) = {
+    def findChildSetByValue ( set : Rep[Int], value : Rep[Int] ) = {
       // This can be done by helper function. Replace it later
       val arr = uintTrie
       val card = arr(set + intTrieConst.loc_of_cardinality)
@@ -726,13 +714,13 @@ Data Structure Implementations
       while (i < size && arr(start + i) < value) {
         i += 1
       }
-      val index = start + i
+      val index = start + i - (set + intTrieConst.sizeof_uint_set_header)
       findChild(set, index)
     }
     def findFirstSet : Rep[Int] = 0
 
     def printTrie: Rep[Unit] = {
-      val curr_int = NewArray[Int](schema.length)
+      val curr_index = NewArray[Int](schema.length)
       val curr_set = NewArray[Int](schema.length)
       val tp = uintTrie(0)
       var level = 0 
@@ -740,42 +728,38 @@ Data Structure Implementations
       if (tp == type_uintvec) {
         level = 0
         curr_set(0) = 0
-        curr_int(0) = findFirstElemInSet(curr_set(0))
+        curr_index(0) = 0
         while (level >= 0) {
           //print indent
           var i = 0
           while (i < 8 * level) { print(" "); i += 1 }
-          print(uintTrie(curr_int(level)))
+          print(get_uint_trie_elem(curr_set(level), curr_index(level)))
           //if it has child (findChild returns positive), go 1 level down
-          val child_set = findChild(curr_set(level), curr_int(level))
+          val child_set = findChild(curr_set(level), curr_index(level))
           if (child_set >= 0) {
             println(" --> ")
             level += 1
             curr_set(level) = child_set
-            curr_int(level) = findFirstElemInSet(child_set)
+            curr_index(level) = 0
           }
           //if it has no child (findChild returns -1) 
           else {
             println("")
-            val next_int = findNext(curr_set(level), curr_int(level))
-            //go to next child
-            if (next_int >= 0) {
-              curr_int(level) = next_int
-            }
+            curr_index(level) = curr_index(level) + 1
             // or go 1 level up when reaching end. 
             // Note that we may need go multiple levels up 
-            else {
+            while (level >= 0 && atEnd(curr_set(level)), curr_index(level)) {
               level -= 1
-              var next_int = findNext(curr_set(level), curr_int(level))
-              while (next_int < 0) {
-                level -= 1
-                next_int = findNext(curr_set(level), curr_int(level))
-              }
-              if (level >= 0) curr_int(level) = next_int
+              if (level >= 0) curr_index(level) = curr_index(level) + 1
             }
           }
         }
       }
+    }
+
+    def atEnd(set: Rep[Int], index: Rep[Int]) = {
+      val card = uintTrie(curr_set + intTrieConst.loc_of_cardinality)
+      index >= card
     }
   }
   class BinTrie (schema: Schema) {
