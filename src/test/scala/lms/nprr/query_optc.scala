@@ -525,7 +525,7 @@ Data Structure Implementations
   }
   */
   object intTrieConst{
-    val initRawDataLen  = (1 << 10)
+    val initRawDataLen  = (1 << 20)
     val loc_of_type = 0
     val loc_of_cardinality = 1
     val sizeof_uint_set_header = 2
