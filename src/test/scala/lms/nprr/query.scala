@@ -225,8 +225,8 @@ trait ExpectedASTs extends QueryAST {
 
   /*val test = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
     Schema("0", "1", "2"), 1)*/
-  val test = NprrJoin(List(edge_0_1),
-    Schema("0", "1"), 1)
+  val test = Count(NprrJoin(List(edge_0_1),
+    Schema("0", "1"), 1))
   
   val expectedAstForTest = Map(
     "t1" -> scan_t,
