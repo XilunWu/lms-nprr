@@ -322,8 +322,8 @@ Algorithm Implementations
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
       while (level >= 0) {
-        //print("curr level: ")
-        //println(level)
+        print("curr level: ")
+        println(level)
         // Option:
         // 1. Have an expanded if-then-else branch for each level
         // 2. Not expand at all
@@ -338,6 +338,7 @@ Algorithm Implementations
           }
           var i = 0
           while (i < inter_data_len(schema.length - 1)) {
+            print("a")
             yld(Record(
               record ++ Vector[RField](RInt(inter_data(schema.length - 1, i))), 
               schema))
@@ -374,7 +375,7 @@ Algorithm Implementations
           // level -= 1
           new_level
         } else {
-          //println(inter_data(level, curr_inter_data_index(level)))
+          println(inter_data(level, curr_inter_data_index(level)))
           val new_level = level + 1
           // open(): update curr_set ( new_level )
           tries.filter( t => t.getSchema.contains(schema(level + 1))).foreach { it =>
