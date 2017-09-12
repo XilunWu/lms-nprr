@@ -370,7 +370,7 @@ Algorithm Implementations
 
       def join_on_level(level: Int): Rep[Int] = {
         if ( atEnd( level )) {
-          // up()
+          // up() 
           val new_level = level - 1
           // next() if not the first attribute
           if ( level != 0 ) 
