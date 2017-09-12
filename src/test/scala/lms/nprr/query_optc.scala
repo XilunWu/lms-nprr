@@ -467,7 +467,7 @@ Algorithm Implementations
               head(number_of_relations - 1), 
               arr_pos(number_of_relations - 1))
             else get_uint_trie_elem(arr(i - 1), head(i - 1), arr_pos(i - 1))
-            //print("max = "); print(max); print("; min = "); println(min)
+            print("max = "); print(max); print("; min = "); println(min)
           if (max == min) {
             inter_data update (level, len, max)
             len += 1
