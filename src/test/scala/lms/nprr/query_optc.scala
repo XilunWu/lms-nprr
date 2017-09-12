@@ -756,9 +756,11 @@ Data Structure Implementations
         }
       }
     }
-
+    def get_uint_trie_elem(set: Rep[Int], index: Rep[Int]) = {
+      uintTrie(set + intTrieConst.sizeof_uint_set_header + index)
+    }
     def atEnd(set: Rep[Int], index: Rep[Int]) = {
-      val card = uintTrie(curr_set + intTrieConst.loc_of_cardinality)
+      val card = uintTrie(set + intTrieConst.loc_of_cardinality)
       index >= card
     }
   }
