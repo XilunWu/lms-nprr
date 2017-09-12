@@ -293,7 +293,11 @@ Query Interpretation = Compilation
       //bintrie.my_print
       }
       val nprr = new NprrJoinAlgo(tries, outSchema)
+      //Measure data loading and preprocessing time
+      unchecked[Unit]("clock_t begin, end; double time_spent")
+      unchecked[Unit]("begin = clock()")
       nprr.run(yld)
+      unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
 
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
@@ -321,7 +325,7 @@ Algorithm Implementations
       var level = 0
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
-      println(inter_data_len(0))
+      // println(inter_data_len(0))
       while (level >= 0) {
         // print("curr level: ")
         // println(level)
