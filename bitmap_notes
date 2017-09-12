@@ -13,4 +13,4 @@ Bitmap operations:
    flip the last 1 in x to a 0.
    Example: x = 0x 0101 1010; x - 1 = 0x 0101 1001; x & x - 1 = 0x 0101 1000
 
-5. 
+5. from article https://lemire.me/blog/2015/01/08/fast-unary-decoding/

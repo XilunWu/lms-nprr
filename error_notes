@@ -14,3 +14,5 @@ Cause:
 17/08/28
 	5. [error] (run-main-0) java.lang.StackOverflowError When I'm trying to write some recursive functions. I guess it's because Scala can't analysis when it will terminate?
 
+17/09/11
+	6. seg fault on large data: array out of bound. don't forget to modify array initial size. (solution: make them more like array buffer)

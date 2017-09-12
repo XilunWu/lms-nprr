@@ -293,7 +293,7 @@ Query Interpretation = Compilation
       //bintrie.my_print
       }
       val nprr = new NprrJoinAlgo(tries, outSchema)
-      nprr.run
+      nprr.run(yld)
 
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
@@ -312,9 +312,9 @@ Algorithm Implementations
     // schema is the result schema of join
 
     //param: yld is the function we'll introduce later, from NprrJoin
-    def run(): Rep[Unit] = {
+    def run(yld: Record => Rep[Unit]): Rep[Unit] = {
       val curr_set = new Matrix(schema.length, tries.length)
-      val inter_data = new Matrix( schema.length, 1 << 8 )
+      val inter_data = new Matrix( schema.length, 1 << 12 )
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
@@ -332,15 +332,13 @@ Algorithm Implementations
           intersect_on_level(schema.length - 1)
           // TODO: yld(tuple)
           var row = 0
-          while (row < schema.length - 1) {
-            print(inter_data(row, curr_inter_data_index(row)))
-            print(" ")
-            row += 1
+          val record = schema.reverse.tail.reverse.map{ attr=>
+            val i = schema indexOf attr
+            RInt(inter_data(i, curr_inter_data_index(i)))
           }
-          println("")
           var i = 0
           while (i < inter_data_len(schema.length - 1)) {
-            println(inter_data(schema.length-1, i))
+            yld(record ++ Fields(RInt(inter_data(i))), schema)
             i += 1
           }
           // next(): then find next in set on level
