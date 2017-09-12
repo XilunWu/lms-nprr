@@ -498,6 +498,7 @@ Algorithm Implementations
     // which is no less than value. 
     def uint_trie_geq(arr: Rep[Array[Int]], head: Rep[Int], value: Rep[Int], init_start: Rep[Int]) = {
       val card = arr(head + intTrieConst.loc_of_cardinality)
+      print("card = "); println(card)
       var start = head + intTrieConst.sizeof_uint_set_header + init_start
       var end = head + intTrieConst.sizeof_uint_set_header + card
       // search among arr(start) and arr(end)
