@@ -398,6 +398,7 @@ Algorithm Implementations
                 curr_set (prev_attr_index, relation),
                 curr_int
                 )
+              if (child <= 0) println("wrong child offset!")
               curr_set update ( level + 1, relation, child )
             }
           }
