@@ -323,8 +323,8 @@ Algorithm Implementations
       init
       println(inter_data_len(0))
       while (level >= 0) {
-        print("curr level: ")
-        println(level)
+        // print("curr level: ")
+        // println(level)
         // Option:
         // 1. Have an expanded if-then-else branch for each level
         // 2. Not expand at all
@@ -339,7 +339,6 @@ Algorithm Implementations
           }
           var i = 0
           while (i < inter_data_len(schema.length - 1)) {
-            print("a")
             yld(Record(
               record ++ Vector[RField](RInt(inter_data(schema.length - 1, i))), 
               schema))
@@ -424,7 +423,7 @@ Algorithm Implementations
         }
         val head = NewArray[Int]( it.length )
         it foreach { t =>
-            print("set: "); println(curr_set(level, tries indexOf t))
+            // print("set: "); println(curr_set(level, tries indexOf t))
             head(it indexOf t) = curr_set(level, tries indexOf t)
         }
         leapfrog_on_level( level, arr, head )
