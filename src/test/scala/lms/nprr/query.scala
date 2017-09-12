@@ -239,6 +239,7 @@ trait ExpectedASTs extends QueryAST {
     "triangle_counting_4thread" -> count_t(4),
     "triangle_counting_8thread" -> count_t(8),
     "triangle_counting_16thread" -> count_t(16),
-    "test" -> test
+    "test" -> test,
+    "fb_test" -> fb_test
   )
 }
