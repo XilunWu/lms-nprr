@@ -454,11 +454,12 @@ Algorithm Implementations
         while ( i < number_of_relations ) {
           arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
           curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
+          print("curr_num = "); print(curr_num)
           i += 1
         }
-      
+        
         i = 0
-        while ( ! uint_trie_reach_end(arr(i), head(i), arr_pos(i)) ) {
+        while ( i >= 0 ) {
           // if we found an intersection
           val min = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
           val max = 
@@ -474,7 +475,8 @@ Algorithm Implementations
           } else {
             arr_pos(i) = uint_trie_geq(arr(i), head(i), max, arr_pos(i))
           }
-          if (i == number_of_relations - 1) i = 0
+          if (uint_trie_reach_end(arr(i), head(i), arr_pos(i))) i = -1
+          else if (i == number_of_relations - 1) i = 0
           else i += 1
         }
         len
@@ -511,6 +513,7 @@ Algorithm Implementations
       }
       var i = 0
       while (i < size && arr(start + i) < value) {
+        print("curr_v = "); print(arr(start+i)); print(" < value = "); println(value)
         i += 1
       }
       start + i
