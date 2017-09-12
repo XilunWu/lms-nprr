@@ -457,7 +457,7 @@ Algorithm Implementations
         while ( i < number_of_relations ) {
           arr_pos(i) = uint_trie_geq(arr(i), head(i), curr_num, 0)
           curr_num = get_uint_trie_elem(arr(i), head(i), arr_pos(i))
-          //print("curr_num = "); print(curr_num)
+          print("curr_num = "); print(curr_num)
           i += 1
         }
         
@@ -517,7 +517,7 @@ Algorithm Implementations
       }
       var i = 0
       while (i < size && arr(start + i) < value) {
-        //print("curr_v = "); print(arr(start+i)); print(" < value = "); println(value)
+        print("curr_v = "); print(arr(start+i)); print(" < value = "); println(value)
         i += 1
       }
       (start + i) - (head + intTrieConst.sizeof_uint_set_header)
