@@ -321,6 +321,7 @@ Algorithm Implementations
       var level = 0
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
+      println(inter_data_len(0))
       while (level >= 0) {
         print("curr level: ")
         println(level)
