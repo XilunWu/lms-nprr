@@ -748,7 +748,7 @@ Data Structure Implementations
             curr_index(level) = curr_index(level) + 1
             // or go 1 level up when reaching end. 
             // Note that we may need go multiple levels up 
-            while (level >= 0 && atEnd(curr_set(level)), curr_index(level)) {
+            while (level >= 0 && atEnd(curr_set(level), curr_index(level)) {
               level -= 1
               if (level >= 0) curr_index(level) = curr_index(level) + 1
             }
