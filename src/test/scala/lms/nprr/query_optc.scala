@@ -338,7 +338,7 @@ Algorithm Implementations
           }
           var i = 0
           while (i < inter_data_len(schema.length - 1)) {
-            yld(record ++ Fields(RInt(inter_data(i))), schema)
+            yld(Record(record ++ Fields(RInt(inter_data(i))), schema))
             i += 1
           }
           // next(): then find next in set on level
