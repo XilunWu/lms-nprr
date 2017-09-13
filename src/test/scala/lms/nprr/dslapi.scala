@@ -152,9 +152,10 @@ trait DslGenC extends CGenNumericOps
   override def remapWithRef[A](m: Typ[A]): String = remap(m) + " "
 
   override def remap[A](m: Typ[A]): String = m.toString match {
+    case "Int" => "int64_t"
     case "java.lang.String" => "char*"
     case "Array[Char]" => "char*"
-    case "Array[Int]"  => "int*"
+    case "Array[Int]"  => "int64_t*"
     case "Char" => "char"
     case _ => super.remap(m)
   }
@@ -216,6 +217,12 @@ trait DslGenC extends CGenNumericOps
       emitBlock(b)
       emitValDef(sym, quote(getBlockResult(b)))
       stream.println("//#" + s)
+    // translate Int to int64_t rather than int32_t
+    case DoubleToInt(lhs) => emitValDef(sym, "(int64_t)" + quote(lhs))
+    case FloatToInt(lhs) => emitValDef(sym, "(int64_t)" + quote(lhs))
+    case IntShiftRightLogical(lhs, rhs) => emitValDef(sym, "(uint64_t)" + quote(lhs) + " >> " + quote(rhs))
+    case LongToInt(lhs) => emitValDef(sym, "(int64_t)"+quote(lhs))
+
     case _ => super.emitNode(sym,rhs)
   }
   override def emitSource[A:Typ](args: List[Sym[_]], body: Block[A], functionName: String, out: java.io.PrintWriter) = {
@@ -315,6 +322,7 @@ abstract class DslDriverC[A:Manifest,B:Manifest] extends DslSnippet[A,B] with Ds
     (new java.io.File("/tmp/snippet")).delete
     import scala.sys.process._
     (s"cc -std=c99 -O3 /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
-    (s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
+    // Just compile without running on my laptop
+    //(s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
   }
 }
