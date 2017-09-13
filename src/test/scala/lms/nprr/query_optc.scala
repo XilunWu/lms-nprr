@@ -102,7 +102,7 @@ Low-Level Processing Logic
   }
   //make value visilble outside RInt.
   case class RInt(val value: Rep[Int]) extends RField {
-    def print() = printf("%d",value)
+    def print() = printf("%ld",value)
     def compare(o: RField) = o match { case RInt(v2) => value == v2 }
     def lessThan(o: RField) = o match { case RInt(v2) =>  value < v2 }
     def hash = value.asInstanceOf[Rep[Long]]
@@ -318,7 +318,7 @@ Algorithm Implementations
     //param: yld is the function we'll introduce later, from NprrJoin
     def run(yld: Record => Rep[Unit]): Rep[Unit] = {
       val curr_set = new Matrix(schema.length, tries.length)
-      val inter_data = new Matrix( schema.length, 1 << 12 )
+      val inter_data = new Matrix( schema.length, 1 << 18 )
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
@@ -540,7 +540,7 @@ Data Structure Implementations
   }
   */
   object intTrieConst{
-    val initRawDataLen  = (1 << 20)
+    val initRawDataLen  = (1 << 24)
     val loc_of_type = 0
     val loc_of_cardinality = 1
     val sizeof_uint_set_header = 2
