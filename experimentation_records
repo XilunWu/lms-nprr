@@ -1,0 +1,16 @@
+2017/09/12
+
+Snyder, 1 node, 20GB MEM
+Leapfrog trie join:
+	#COUNT
+	Query execution time: 229.315680
+	1656074926
+
+Emptyheaded:
+	TRIANGLE LIST
+	Time[LOADING Trie Edge_0_1]: 1.48853 s
+	Time[LOADING ENCODINGS uint32_t]: 0.0098897 s
+	NUM ROWS: 1656074926 ANNOTATION: 0x1a1b10001a1b0
+	Time[BAG TriangleList TIME]: 34.2453 s
+	Time[QUERY TIME]: 34.2453 s
+
