@@ -11,3 +11,7 @@ remapWithRef:
 remap(typ) + addRef(typ)
 remap: map Scala type to C(target) type
 def addRef(): String = if (cppMemMgr=="refcnt") " " else " *"
+
+2017/09/18
+Be careful of using "import" if that object is mixed with Dsl?
+
