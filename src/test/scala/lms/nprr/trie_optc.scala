@@ -21,6 +21,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
     while (i < row) {
       val new_row = NewArray[Int](col)
       rows(i) = new_row
+      lens(i) = col
       i += 1
     }
 
