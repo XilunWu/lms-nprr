@@ -163,7 +163,7 @@ trait DslGenC extends CGenNumericOps
     remap(s.tp) match {
       case "uint16_t" => "%c"
       case "bool" | "int8_t" | "int16_t" | "int32_t" => "%d"
-      case "int64_t" => "%ld"
+      case "int64_t" => "%lld"
       case "float" | "double" => "%f"
       case "string" => "%s"
       case "char*" => "%s"
@@ -321,7 +321,7 @@ abstract class DslDriverC[A:Manifest,B:Manifest] extends DslSnippet[A,B] with Ds
     //TODO: use precompile
     (new java.io.File("/tmp/snippet")).delete
     import scala.sys.process._
-    (s"cc -std=c99 -O3 /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
+    (s"cc -std=c11 -O3 /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
     // Just compile without running on my laptop
     //(s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
   }
