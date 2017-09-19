@@ -15,23 +15,70 @@ trait Trie extends Dsl with StagedQueryProcessor {
 
   class Matrix (row: Rep[Int], col: Rep[Int]) {
     val rows = NewArray[Array[Int]](row)
+    val lens = NewArray[Int](row)
+
     var i = 0
     while (i < row) {
       val new_row = NewArray[Int](col)
       rows(i) = new_row
       i += 1
     }
+
     def apply(row_num: Rep[Int]) = rows(row_num)
     def apply(row_num: Rep[Int], col_num: Rep[Int]): Rep[Int] = {
       val row = rows(row_num)
       row(col_num)
-    }
+    }/*
     def update(row_num: Rep[Int], new_row: Rep[Array[Int]]) = {
     	rows update (row_num, new_row)
-    }
+    }*/
     def update(row_num: Rep[Int], col_num: Rep[Int], x: Rep[Int]) = {
+    	if (col_num >= lens(row_num)) {
+    		var new_len = 2 * lens(row_num)
+    		while(col_num >= new_len) new_len *= 2
+    		val new_arr = NewArray[Int](new_len)
+    		row_dup(row_num, new_arr)
+    		lens(row_num) = new_len
+    		rows update (row_num, new_arr)
+    	}
       val row = rows(row_num)
       row update (col_num, x)
+    }
+    def row_dup(row: Rep[Int], new_arr: Rep[Array[Int]]) = {
+    	val src = rows(row)
+    	val count = lens(row)
+    	var i = 0
+    	while (i < count) {
+    		new_arr(i) = src(i)
+    		i += 1
+    	}
+    }
+  }
+
+  class ArrayBuffer (init_len: Rep[Int]) {
+  	var arr = NewArray[Int](init_len)
+  	var len = init_len
+  	def update(index: Rep[Int], value: Rep[Int]) = {
+  		if (index >= len) {
+  			var new_len = 2 * len
+  			while (index >= new_len) new_len *= 2
+  			val new_arr = NewArray[Int](new_len)
+  			dup2(new_arr)
+  			len = new_len
+  			arr = new_arr
+  		}
+  		arr(index) = value
+  	}
+
+  	def apply(index: Rep[Int]) = arr(index)
+
+  	def dup2(new_arr: Rep[Array[Int]]) = {
+    	var i = 0
+    	val count = len
+    	while (i < count) {
+    		new_arr(i) = arr(i)
+    		i += 1
+    	}
     }
   }
 
@@ -49,35 +96,10 @@ trait Trie extends Dsl with StagedQueryProcessor {
     val lenArray = NewArray[Int](schema.length)
 
     //trie in linear array
-    var uintTrie = NewArray[Int](initRawDataLen * schema.length * 2)
+    val uintTrie = new ArrayBuffer(initRawDataLen * schema.length * 2)
 
-    def getTrie = uintTrie
+    def getTrie = uintTrie.arr
     def getSchema = schema
-
-    def array_copy(old: Rep[Array[Int]], s_old: Rep[Int], new_arr: Rep[Array[Int]], s_new: Rep[Int], c: Rep[Int]) = {
-    	var i = 0
-    	var count = c
-    	if (s_old + count > old.length) count = old.length - s_old
-    	if (s_new + count > new_arr.length) count = new_arr.length - s_new
-
-    	while (i < count) {
-    		new_arr(s_new+i) = old(s_old+i)
-    		i += 1
-    	}
-    }
-    def array_safe_update(arr: Rep[Array[Int]], index: Rep[Int], value: Rep[Int]) = {
-    	if (index >= arr.length) {
-    		var new_len = arr.length
-    		while (index >= new_len) new_len *= 2
-    		val new_arr = NewArray[Int](new_len)
-    		array_copy(arr, 0, new_arr, 0, arr.length)
-    		new_arr(index) = value
-    		new_arr
-    	} else {
-    		arr(index) = value
-    		arr
-    	}
-    }
 
     def +=(fields: Vector[Rep[Int]]):Rep[Unit] = {
       var diff = false
@@ -87,18 +109,8 @@ trait Trie extends Dsl with StagedQueryProcessor {
         else 
           if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
         if (diff) {
-        	if (lenArray(i) >= valueArray(i).length) {
-        		val new_arr = NewArray[Int](2 * valueArray(i).length)
-        		array_copy(valueArray(i), 0, new_arr, 0, valueArray(i).length)
-        		valueArray update (i, new_arr)
-        	}
           valueArray update (i, lenArray(i), x)
           if (i != schema.length - 1) {
-          	if (lenArray(i) >= indexArray(i).length) {
-	        		val new_index_arr = NewArray[Int](2 * indexArray(i).length)
-	        		array_copy(indexArray(i), 0, new_index_arr, 0, indexArray(i).length)
-	        		indexArray update (i, new_index_arr)
-	        	}
             indexArray update (i, lenArray(i), lenArray(i+1))
           }
           lenArray(i) = lenArray(i) + 1
@@ -112,24 +124,16 @@ trait Trie extends Dsl with StagedQueryProcessor {
       var addr_new = addr
       var addr_index_new = addr_index
 
-      uintTrie = array_safe_update(uintTrie, addr, type_uintvec)
-      uintTrie = array_safe_update(uintTrie, addr+1, num)      
+      uintTrie update (addr, type_uintvec)
+      uintTrie update (addr+1, num)      
 
       var i = start
       while (i < end) {
         //value
-        uintTrie = array_safe_update(
-        	uintTrie,
-        	addr + sizeof_uint_set_header + i - start,
-        	v(i)
-        )
+        uintTrie update(addr + sizeof_uint_set_header + i - start, v(i))
         //index. Except for the last column
         if (level != schema.length - 1) {
-        	uintTrie = array_safe_update(
-        		uintTrie,
-	        	addr + sizeof_uint_set_header + num + i - start,
-	        	addr_index_new
-	        )
+        	uintTrie update(addr + sizeof_uint_set_header + num + i - start, addr_index_new)
           val num_of_children = indexArray(level, i+1) - indexArray(level, i)
           //update the location of its child set 
           addr_index_new = addr_index_new + sizeof_uint_set_header + 2 * num_of_children
@@ -147,14 +151,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
       var addr_new_set_index = sizeof_uint_set_header + 2 * lenArray(0)
       //make sure that indexArray(i)(lenArray(i)) = lenArray(i+1)
       0 until (schema.length - 1) foreach { i =>
-        indexArray update (
-        	i, 
-        	array_safe_update(
-        		indexArray(i),
-        		lenArray(i),
-        		lenArray(i+1)
-        	)
-        )
+        indexArray update (i, lenArray(i), lenArray(i+1))
       }
       while (level < schema.length) {
         val num_of_sets = if (level == 0) 1 else lenArray(level - 1)
