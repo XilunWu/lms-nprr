@@ -135,7 +135,7 @@ trait DslImpl extends DslExp { q =>
 trait DslGenC extends CGenNumericOps
     with CGenPrimitiveOps with CGenMathOps with CGenBooleanOps with CGenIfThenElse
     with CGenEqual with CGenRangeOps with CGenOrderingOps
-    with CGenMiscOps with CGenArrayOps with CGenStringOps
+    with CGenMiscOps with /*CGenArrayOps*/CLikeGenArrayOps with CGenStringOps
     with CGenSeqOps with CGenFunctions with CGenWhile
     with CGenStaticData with CGenVariables
     with CGenObjectOps
