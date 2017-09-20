@@ -296,7 +296,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
   		val min = v(start)
       val max = v(end-1)
       val min_in_bitmap = min & (~(bits_per_int-1))
-      val max_in_bitmap = (max+bits_per_int-1) & (~(bits_per_int-1))
+      val max_in_bitmap = (max+bits_per_int) & (~(bits_per_int-1))
       val size_of_bitmap = (max_in_bitmap - min_in_bitmap) / bits_per_int
     	val start_of_index_section = sizeof_bit_set_header + size_of_bitmap
     	val size_of_bitset = start_of_index_section + (max_in_bitmap - min_in_bitmap)
@@ -310,7 +310,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
 
     	val (min_in_bitmap, max_in_bitmap, start_of_index_section, size_of_bitset) = get_info_bitset(level, start, end)
       bitTrie update (addr+loc_of_type, type_bitmap)
-      bitTrie update (addr+loc_of_cardinality, size_of_bitset)
+      bitTrie update (addr+loc_of_cardinality, (max_in_bitmap - min_in_bitmap) / bits_per_int)
       bitTrie update (addr+loc_of_bitmap_min, min_in_bitmap)
       bitTrie update (addr+loc_of_bitmap_max, max_in_bitmap)
 
@@ -335,6 +335,8 @@ trait Trie extends Dsl with StagedQueryProcessor {
 	        if (level != schema.length - 1) {
 	        	val index_in_bitmap = value - min_in_bitmap
 	        	bitTrie update (addr+start_of_index_section+index_in_bitmap, addr_index_new)
+	        	// print("value = "); print(value); print("; next = "); println(addr_index_new)
+	        	// println(bitTrie(addr+start_of_index_section+index_in_bitmap))
 	        	val (_, _, _, size_of_child_bitset) = get_info_bitset(level+1, indexArray(level, i), indexArray(level, i+1))
 	        	/*
 	        	val min_of_children = valueArray(level+1, indexArray(level, i))
@@ -388,6 +390,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
       val size_of_bitmap = arr(set + loc_of_cardinality)
       val index = value - min_in_bitmap
       val start_of_index_section = sizeof_bit_set_header + size_of_bitmap
+      // print("min = "); print(min_in_bitmap); print("; size_of_bitmap = "); print(size_of_bitmap); print("; index = "); println(index)
       arr(set + start_of_index_section + index)
     }
     def findFirstSet : Rep[Int] = 0

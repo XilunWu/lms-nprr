@@ -1,8 +1,10 @@
 Bitmap operations:
-1. __builtin_ctzl(x)
+1. __builtin_ctzl(x) (unsigned long - 32 bits)
+   __builtin_ctzll(x) (unsigned long long - 64 bits)
    Returns the number of trailing 0-bits in x, starting at the least significant bit position. If x is 0, the result is undefined.
 
-2. __builtin_popcountl(x)
+2. __builtin_popcountl(x) (unsigned long - 32 bits)
+   __builtin_popcountll(x) (unsigned long long - 64 bits)
    Returns the number of 1-bits in x.
 
 3. t = x & -x
@@ -14,3 +16,10 @@ Bitmap operations:
    Example: x = 0x 0101 1010; x - 1 = 0x 0101 1001; x & x - 1 = 0x 0101 1000
 
 5. from article https://lemire.me/blog/2015/01/08/fast-unary-decoding/
+
+6. x ^= (1l << n-1)
+   flip the n-th rightmost bit
+
+7. i is an int64_t variable:
+     i ^ (1 << 31) => flip 32 bits from the left
+	 i ^ (1l << 32) => (i >>> 32) << 32

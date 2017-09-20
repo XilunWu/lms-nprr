@@ -424,6 +424,14 @@ Algorithm Implementations
         val ints_in_bitmap = end.head - start.head
         var i = 0
         var pos = 0
+        /*
+        print("start.head: ")
+        println(start.head)
+        print("end.head: ")
+        println(end.head)
+        print("min: ")
+        println(min) 
+        */      
         while (i < ints_in_bitmap) {
           var bitmap = -1
           (arr, start, end).zipped.foreach { case (arr, start, end) =>
@@ -431,14 +439,19 @@ Algorithm Implementations
           }
           i += 1
           // decode bitmap to a set of int's
-          val numbers = uncheckedPure[Int]("__builtin_popcountl(", readVar(bitmap), ")")
+          val numbers = uncheckedPure[Int]("__builtin_popcountll(", readVar(bitmap), ")")
+          // print("popcount = ")
+          // println(numbers)
           pos += numbers
           var k = 1
           while (bitmap != 0) {
-            val ntz = uncheckedPure[Int]("__builtin_ctzl(", readVar(bitmap), ");")
+            val ntz = uncheckedPure[Int]("__builtin_ctzll(", readVar(bitmap), ")")
+            // print("ntz = "); print(ntz); print(" ")
+            // println(min + 64*i - ntz - 1)
             inter_data update (level, pos-k, min + 64*i - ntz - 1)
             val ops = 1 << ntz
             bitmap = readVar(bitmap) ^ ops
+            //println(ops); println(bitmap)
             k += 1
           }
         }
