@@ -272,6 +272,8 @@ trait Trie extends Dsl with StagedQueryProcessor {
     def getTrie = bitTrie.arr
     def getSchema = schema
 
+    def apply(i: Rep[Int]) = bitTrie.arr(i)
+
     def +=(fields: Vector[Rep[Int]]):Rep[Unit] = {
       var diff = false
       fields foreach { x =>
@@ -308,7 +310,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
 
     	val (min_in_bitmap, max_in_bitmap, start_of_index_section, size_of_bitset) = get_info_bitset(level, start, end)
       bitTrie update (addr+loc_of_type, type_bitmap)
-      bitTrie update (addr+loc_of_cardinality, size_of_bitmap)
+      bitTrie update (addr+loc_of_cardinality, size_of_bitset)
       bitTrie update (addr+loc_of_bitmap_min, min_in_bitmap)
       bitTrie update (addr+loc_of_bitmap_max, max_in_bitmap)
 
@@ -328,7 +330,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
       	}
       	else {
       		val diff = value - min_in_bit_int
-      		bit_int |= (0x1 << (bits_per_int - diff - 1))
+      		bit_int = bit_int | (0x1 << (bits_per_int - diff - 1))
       		// We assume all indices are initialized to 0. 
 	        if (level != schema.length - 1) {
 	        	val index_in_bitmap = value - min_in_bitmap

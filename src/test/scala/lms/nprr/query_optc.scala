@@ -225,14 +225,15 @@ Query Interpretation = Compilation
       }
     case NprrJoin(parents, outSchema, num_threads) =>
       val tries = parents.map { p => 
-        val bintrie = new IntTrie(resultSchema(p))
+        val bintrie = new BitTrie(resultSchema(p))
         execOp(p) { rec => bintrie += 
           rec.fields.map {
             case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
             case RString (str: Rep[String], len: Rep[Int]) => str.toInt
           }
         }
-        bintrie.buildIntTrie 
+        //bintrie.buildIntTrie 
+        bintrie.buildBitTrie         
         bintrie
       }
       val nprr = new NprrJoinAlgo(tries, outSchema)
@@ -254,7 +255,9 @@ Query Interpretation = Compilation
 Algorithm Implementations
 */
 
-  class NprrJoinAlgo( tries : List[IntTrie], schema : Schema) {
+  // class NprrJoinAlgo( tries : List[IntTrie], schema : Schema) {
+  class NprrJoinAlgo( tries : List[BitTrie], schema : Schema) {
+
     import trie_const._
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
@@ -262,7 +265,7 @@ Algorithm Implementations
     //param: yld is the function we'll introduce later, from NprrJoin
     def run(yld: Record => Rep[Unit]): Rep[Unit] = {
       val curr_set = new Matrix(schema.length, tries.length)
-      val inter_data = new Matrix( schema.length, 1 << 10 )
+      val inter_data = new Matrix( schema.length, 1 << 18 )
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
@@ -395,39 +398,51 @@ Algorithm Implementations
         if (min >= max) 0
         else {
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
+          /*
           val (start, end) = it map { t =>
             val set = head(it indexOf t)
             val start = t.findElemInSetByValue(set, min)
             val end = t.findElemInSetByValue(set, max)
             (start, end)
           }.unzip
-          bitmap_intersectioon(level, it, start, end)
+          */
+          val start = it map { t =>
+            val set = head(it indexOf t)
+            val start = t.findElemInSetByValue(set, min)
+            start
+          }
+          val end = it map { t =>
+            val set = head(it indexOf t)
+            val end = t.findElemInSetByValue(set, max)
+            end
+          }
+          bitmap_intersectioon(level, it, start, end, min)
         }
       }
 
-      def bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]]) = {
+      def bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
         val ints_in_bitmap = end.head - start.head
         var i = 0
         var pos = 0
         while (i < ints_in_bitmap) {
           var bitmap = -1
           (arr, start, end).zipped.foreach { case (arr, start, end) =>
-            bitmap &= arr(start+i)
+            bitmap = readVar(bitmap) & arr(start+i)
           }
           i += 1
           // decode bitmap to a set of int's
-          /*
-          long data = bitmaps[k];
-          while (data != 0) {
-            int ntz = Long.numberOfTrailingZeros(data);
-            output[pos++] = k * 64 + ntz;
-            data ^= (1l << ntz);
-          }
-          */
+          val numbers = uncheckedPure[Int]("__builtin_popcountl(", readVar(bitmap), ")")
+          pos += numbers
+          var k = 1
           while (bitmap != 0) {
-            
+            val ntz = uncheckedPure[Int]("__builtin_ctzl(", readVar(bitmap), ");")
+            inter_data update (level, pos-k, min + 64*i - ntz - 1)
+            val ops = 1 << ntz
+            bitmap = readVar(bitmap) ^ ops
+            k += 1
           }
         }
+        pos
       }
 
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
@@ -552,18 +567,6 @@ Data Structure Implementations
     }
   }
   */
-  
-  object binTrieConst{
-    val initRawDataLen  = (1 << 10)
-    val initDataLen     = (1 << 14)
-    val sizeOfBlockHead = 21 //bytes
-    //put all const here
-    val type_bitvec = 0
-    val type_uintvec = 1
-    val sizeof_bitvec_header = 3
-    val sizeof_uintvec_header = 2
-  }
-
 
   abstract class ColBuffer
   case class IntColBuffer(data: Rep[Array[Int]]) extends ColBuffer
