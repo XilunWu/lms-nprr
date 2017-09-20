@@ -255,13 +255,14 @@ Algorithm Implementations
 */
 
   class NprrJoinAlgo( tries : List[IntTrie], schema : Schema) {
+    import trie_const._
     // tries is the list of TrieIterators involved in
     // schema is the result schema of join
 
     //param: yld is the function we'll introduce later, from NprrJoin
     def run(yld: Record => Rep[Unit]): Rep[Unit] = {
       val curr_set = new Matrix(schema.length, tries.length)
-      val inter_data = new Matrix( schema.length, 1 << 18 )
+      val inter_data = new Matrix( schema.length, 1 << 10 )
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
@@ -359,7 +360,76 @@ Algorithm Implementations
       def atEnd (level : Int) : Rep[Boolean] = 
         curr_inter_data_index(level) >= inter_data_len(level)
       def intersect_on_level (level : Int) : Rep[Int] = 
-        intersect_on_level_leapfrog(level)
+        // intersect_on_level_leapfrog(level)
+        // We switch to bit intersection for now
+        intersect_on_level_bitmap(level)
+
+      def intersect_on_level_bitmap (level : Int) : Rep[Int] = {
+        // return the cardinality of result set
+        // intersect
+        // and put result into inter_data ( level )
+        val it = tries.filter( t => t.getSchema.contains(schema(level)))
+        val arr = NewArray[Array[Int]]( it.length )
+        it foreach { t =>
+            arr(it indexOf t) = t.getTrie
+        }
+        val head = NewArray[Int]( it.length )
+        it foreach { t =>
+            // print("set: "); println(curr_set(level, tries indexOf t))
+            head(it indexOf t) = curr_set(level, tries indexOf t)
+        }
+
+        // Step1: align all bitmaps
+        val start = NewArray[Int]( it.length )
+        val end = NewArray[Int]( it.length )
+        var min = it.head.getMinInBitset(head(0)) // max of min's
+        var max = it.head.getMaxInBitset(head(0)) // min of max's
+        // Step1.1: find the overlap of bitmaps
+        it foreach { t =>
+            val set = head(it indexOf t)
+            val min_tmp = t.getMinInBitset(set)
+            val max_tmp = t.getMaxInBitset(set)
+            if (min_tmp > min) min = min_tmp
+            if (max_tmp < max) max = max_tmp
+        }
+        if (min >= max) 0
+        else {
+          // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
+          val (start, end) = it map { t =>
+            val set = head(it indexOf t)
+            val start = t.findElemInSetByValue(set, min)
+            val end = t.findElemInSetByValue(set, max)
+            (start, end)
+          }.unzip
+          bitmap_intersectioon(level, it, start, end)
+        }
+      }
+
+      def bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]]) = {
+        val ints_in_bitmap = end.head - start.head
+        var i = 0
+        var pos = 0
+        while (i < ints_in_bitmap) {
+          var bitmap = -1
+          (arr, start, end).zipped.foreach { case (arr, start, end) =>
+            bitmap &= arr(start+i)
+          }
+          i += 1
+          // decode bitmap to a set of int's
+          /*
+          long data = bitmaps[k];
+          while (data != 0) {
+            int ntz = Long.numberOfTrailingZeros(data);
+            output[pos++] = k * 64 + ntz;
+            data ^= (1l << ntz);
+          }
+          */
+          while (bitmap != 0) {
+            
+          }
+        }
+      }
+
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
