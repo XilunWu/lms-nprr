@@ -14,3 +14,8 @@ Emptyheaded:
 	Time[BAG TriangleList TIME]: 34.2453 s
 	Time[QUERY TIME]: 34.2453 s
 
+2017/09/20
+Snyder, 1 node, 20GB MEM
+	#COUNT
+	Query execution time: 111.906720
+	1656074926
