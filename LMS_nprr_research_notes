@@ -1,3 +1,4 @@
 LMS-NPRR research note
 
-1. One point you may be interested in: To how much extent should LMS inline foreach? Expand code every foreach call site as possible or use while-loop anywhere? 
+1. One point you may be interested in: To how much extent should LMS inline foreach? Expand code every foreach call site as possible or use while-loop anywhere?
+*2. Your problem may not be applicable to worst-case analysis. NPRR is a worst-case optimal algorithm, but...?
