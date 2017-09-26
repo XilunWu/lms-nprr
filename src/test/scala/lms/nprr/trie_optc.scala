@@ -330,7 +330,8 @@ trait Trie extends Dsl with StagedQueryProcessor {
       	}
       	else {
       		val diff = value - min_in_bit_int
-      		bit_int = bit_int | (0x1 << (bits_per_int - diff - 1))
+          val last_bit = uncheckedPure[Int]("1l << ", (bits_per_int - diff - 1))
+      		bit_int = bit_int | last_bit
       		// We assume all indices are initialized to 0. 
 	        if (level != schema.length - 1) {
 	        	val index_in_bitmap = value - min_in_bitmap
