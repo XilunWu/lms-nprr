@@ -228,8 +228,8 @@ trait ExpectedASTs extends QueryAST {
   val fb_edge_1_2 =  Scan("facebook_duplicated12.tsv", Some(Schema("1","2")), Some('\t'))
 
   val gplus_edge_0_1 =  Scan("gplus01.txt", Some(Schema("0","1")), Some('\t'))
-  val gplus_edge_0_2 =  Scan("gplus02.txt", Some(Schema("0","1")), Some('\t'))
-  val gplus_edge_1_2 =  Scan("gplus12.txt", Some(Schema("0","1")), Some('\t'))
+  val gplus_edge_0_2 =  Scan("gplus02.txt", Some(Schema("0","2")), Some('\t'))
+  val gplus_edge_1_2 =  Scan("gplus12.txt", Some(Schema("1","2")), Some('\t'))
 
   /*val test = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
     Schema("0", "1", "2"), 1)*/
