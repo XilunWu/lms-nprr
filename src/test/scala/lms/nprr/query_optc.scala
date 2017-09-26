@@ -400,9 +400,9 @@ Algorithm Implementations
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
           val (start, end) = it map { t =>
             val set = head(it indexOf t)
-            val start = t.findElemInSetByValue(set, min)
-            val end = t.findElemInSetByValue(set, max)
-            (start, end)
+            val s = t.findElemInSetByValue(set, min)
+            val e = t.findElemInSetByValue(set, max)
+            (s, e)
           } unzip
           bitmap_intersectioon(level, it, start, end, min)
         }
