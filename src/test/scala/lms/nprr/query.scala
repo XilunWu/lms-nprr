@@ -226,12 +226,19 @@ trait ExpectedASTs extends QueryAST {
   val fb_edge_0_1 =  Scan("facebook_duplicated01.tsv", Some(Schema("0","1")), Some('\t'))
   val fb_edge_0_2 =  Scan("facebook_duplicated02.tsv", Some(Schema("0","2")), Some('\t'))
   val fb_edge_1_2 =  Scan("facebook_duplicated12.tsv", Some(Schema("1","2")), Some('\t'))
+
+  val gplus_edge_0_1 =  Scan("gplus01.txt", Some(Schema("0","1")), Some('\t'))
+  val gplus_edge_0_2 =  Scan("gplus02.txt", Some(Schema("0","1")), Some('\t'))
+  val gplus_edge_1_2 =  Scan("gplus12.txt", Some(Schema("0","1")), Some('\t'))
+
   /*val test = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
     Schema("0", "1", "2"), 1)*/
   val test = Count(NprrJoin(List(edge_0_1),
     Schema("0", "1"), 1))
   val fb_test = Count(NprrJoin(List(fb_edge_0_1, fb_edge_0_2, fb_edge_1_2),
     Schema("0", "1", "2"), 1))
+  val gplus_test = Count(NprrJoin(List(gplus_edge_0_1, gplus_edge_0_2, gplus_edge_1_2),
+    Schema("0", "1", "2"), 1))  
   val expectedAstForTest = Map(
     "t1" -> scan_t,
     "triangle_counting_1thread" -> count_t(1),
@@ -240,6 +247,7 @@ trait ExpectedASTs extends QueryAST {
     "triangle_counting_8thread" -> count_t(8),
     "triangle_counting_16thread" -> count_t(16),
     "test" -> test,
-    "fb_test" -> fb_test
+    "fb_test" -> fb_test,
+    "gplus_test" -> gplus_test
   )
 }
