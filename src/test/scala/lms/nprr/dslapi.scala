@@ -247,9 +247,9 @@ trait DslGenC extends CGenNumericOps
       #ifndef MAP_FILE
       #define MAP_FILE MAP_SHARED
       #endif
-      int64_t fsize(int fd) {
+      int32_t fsize(int fd) {
         struct stat stat;
-        int64_t res = fstat(fd,&stat);
+        int32_t res = fstat(fd,&stat);
         return stat.st_size;
       }
       int printll(char* s) {
