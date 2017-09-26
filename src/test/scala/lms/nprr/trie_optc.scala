@@ -2,7 +2,7 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait Trie extends Dsl with StagedQueryProcessor {
+trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
 
   object trie_const{
     val initRawDataLen  = (1 << 16)
