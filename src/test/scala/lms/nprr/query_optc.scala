@@ -101,7 +101,7 @@ Low-Level Processing Logic
   }
   //make value visilble outside RInt.
   case class RInt(val value: Rep[Int]) extends RField {
-    def print() = printf("%lld",value)
+    def print() = printf("%d",value)
     def compare(o: RField) = o match { case RInt(v2) => value == v2 }
     def lessThan(o: RField) = o match { case RInt(v2) =>  value < v2 }
     def hash = value.asInstanceOf[Rep[Long]]
@@ -398,14 +398,15 @@ Algorithm Implementations
         if (min >= max) 0
         else {
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
-          /*
+          
           val (start, end) = it map { t =>
             val set = head(it indexOf t)
             val start = t.findElemInSetByValue(set, min)
             val end = t.findElemInSetByValue(set, max)
             (start, end)
-          }.unzip
-          */
+          } unzip
+          
+          /*
           val start = it map { t =>
             val set = head(it indexOf t)
             val start = t.findElemInSetByValue(set, min)
@@ -415,7 +416,7 @@ Algorithm Implementations
             val set = head(it indexOf t)
             val end = t.findElemInSetByValue(set, max)
             end
-          }
+          }*/
           bitmap_intersectioon(level, it, start, end, min)
         }
       }
