@@ -440,13 +440,13 @@ Algorithm Implementations
           }
           i += 1
           // decode bitmap to a set of int's
-          val numbers = uncheckedPure[Int]("__builtin_popcountll(", readVar(bitmap), ")")
+          val numbers = uncheckedPure[Int]("__builtin_popcountl(", readVar(bitmap), ")")
           // print("popcount = ")
           // println(numbers)
           pos += numbers
           var k = 1
           while (bitmap != 0) {
-            val ntz = uncheckedPure[Int]("__builtin_ctzll(", readVar(bitmap), ")")
+            val ntz = uncheckedPure[Int]("__builtin_ctzl(", readVar(bitmap), ")")
             // print("ntz = "); print(ntz); print(" ")
             // println(min + 64*i - ntz - 1)
             inter_data update (level, pos-k, min + 32*i - ntz - 1)
