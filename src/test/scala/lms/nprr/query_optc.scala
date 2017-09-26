@@ -398,12 +398,24 @@ Algorithm Implementations
         if (min >= max) 0
         else {
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
+          /*
           val (start, end) = it map { t =>
             val set = head(it indexOf t)
             val s = t.findElemInSetByValue(set, min)
             val e = t.findElemInSetByValue(set, max)
             (s, e)
           } unzip
+          */
+          val start = it map { t =>
+            val set = head(it indexOf t)
+            val start = t.findElemInSetByValue(set, min)
+            start
+          }
+          val end = it map { t =>
+            val set = head(it indexOf t)
+            val end = t.findElemInSetByValue(set, max)
+            end
+          }
           bitmap_intersectioon(level, it, start, end, min)
         }
       }

@@ -19,7 +19,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
     val type_bitmap = 2
 
     val bytes_per_int = 8
-    val bits_per_int = 8 * bytes_per_int    
+    val bits_per_int = 8 * bytes_per_int
   }
 
   class Matrix (row: Rep[Int], col: Rep[Int]) {
