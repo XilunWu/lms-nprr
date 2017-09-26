@@ -152,20 +152,16 @@ trait DslGenC extends CGenNumericOps
   override def remapWithRef[A](m: Typ[A]): String = remap(m) + " "
 
   override def remap[A](m: Typ[A]): String = m.toString match {
-    //case "Int" => "int64_t"
-    case "Int" => "int32_t"
-    case "UInt" => "uint32_t"
+    case "Int" => "int64_t"
     case "java.lang.String" => "char*"
     case "Array[Char]" => "char*"
-    case "Array[Int]"  => "int32_t*"
-    case "Array[UInt]"  => "uint32_t*"
+    case "Array[Int]"  => "int64_t*"
     case "Char" => "char"
     case _ => super.remap(m)
   }
   override def format(s: Exp[Any]): String = {
     remap(s.tp) match {
       case "uint16_t" => "%c"
-      case "uint32_t" => "%u"
       case "bool" | "int8_t" | "int16_t" | "int32_t" => "%d"
       case "int64_t" => "%lld"
       case "float" | "double" => "%f"
@@ -222,12 +218,11 @@ trait DslGenC extends CGenNumericOps
       emitValDef(sym, quote(getBlockResult(b)))
       stream.println("//#" + s)
     // translate Int to int64_t rather than int32_t
-    /*
     case DoubleToInt(lhs) => emitValDef(sym, "(int64_t)" + quote(lhs))
     case FloatToInt(lhs) => emitValDef(sym, "(int64_t)" + quote(lhs))
     case IntShiftRightLogical(lhs, rhs) => emitValDef(sym, "(uint64_t)" + quote(lhs) + " >> " + quote(rhs))
     case LongToInt(lhs) => emitValDef(sym, "(int64_t)"+quote(lhs))
-    */
+
     case _ => super.emitNode(sym,rhs)
   }
   override def emitSource[A:Typ](args: List[Sym[_]], body: Block[A], functionName: String, out: java.io.PrintWriter) = {
@@ -247,9 +242,9 @@ trait DslGenC extends CGenNumericOps
       #ifndef MAP_FILE
       #define MAP_FILE MAP_SHARED
       #endif
-      int32_t fsize(int fd) {
+      int64_t fsize(int fd) {
         struct stat stat;
-        int32_t res = fstat(fd,&stat);
+        int64_t res = fstat(fd,&stat);
         return stat.st_size;
       }
       int printll(char* s) {

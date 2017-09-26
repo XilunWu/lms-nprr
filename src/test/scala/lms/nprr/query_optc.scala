@@ -101,7 +101,7 @@ Low-Level Processing Logic
   }
   //make value visilble outside RInt.
   case class RInt(val value: Rep[Int]) extends RField {
-    def print() = printf("%d",value)
+    def print() = printf("%lld",value)
     def compare(o: RField) = o match { case RInt(v2) => value == v2 }
     def lessThan(o: RField) = o match { case RInt(v2) =>  value < v2 }
     def hash = value.asInstanceOf[Rep[Long]]
@@ -398,25 +398,12 @@ Algorithm Implementations
         if (min >= max) 0
         else {
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
-          
           val (start, end) = it map { t =>
             val set = head(it indexOf t)
             val start = t.findElemInSetByValue(set, min)
             val end = t.findElemInSetByValue(set, max)
             (start, end)
           } unzip
-          
-          /*
-          val start = it map { t =>
-            val set = head(it indexOf t)
-            val start = t.findElemInSetByValue(set, min)
-            start
-          }
-          val end = it map { t =>
-            val set = head(it indexOf t)
-            val end = t.findElemInSetByValue(set, max)
-            end
-          }*/
           bitmap_intersectioon(level, it, start, end, min)
         }
       }
@@ -440,19 +427,19 @@ Algorithm Implementations
           }
           i += 1
           // decode bitmap to a set of int's
-          val numbers = uncheckedPure[Int]("__builtin_popcount((unsigned int)", readVar(bitmap), ")")
+          val numbers = uncheckedPure[Int]("__builtin_popcountll(", readVar(bitmap), ")")
           // print("popcount = ")
           // println(numbers)
           pos += numbers
           var k = 1
           while (bitmap != 0) {
-            val ntz = uncheckedPure[Int]("__builtin_ctz((unsigned int)", readVar(bitmap), ")")
+            val ntz = uncheckedPure[Int]("__builtin_ctzll(", readVar(bitmap), ")")
             // print("ntz = "); print(ntz); print(" ")
-            // println(min + 32*i - ntz - 1)
-            inter_data update (level, pos-k, min + 32*i - ntz - 1)
+            // println(min + 64*i - ntz - 1)
+            inter_data update (level, pos-k, min + 64*i - ntz - 1)
             val ops = 1 << ntz
             bitmap = readVar(bitmap) ^ ops
-            // println(ops); println(bitmap)
+            //println(ops); println(bitmap)
             k += 1
           }
         }
