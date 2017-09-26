@@ -25,3 +25,4 @@ Bitmap operations:
 7. i is an int64_t variable:
      i ^ (1 << 31) => flip 32 bits from the left
 	 i ^ (1l << 32) => (i >>> 32) << 32
+

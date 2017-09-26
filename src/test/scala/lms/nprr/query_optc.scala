@@ -449,7 +449,7 @@ Algorithm Implementations
             // print("ntz = "); print(ntz); print(" ")
             // println(min + 64*i - ntz - 1)
             inter_data update (level, pos-k, min + 64*i - ntz - 1)
-            val ops = 1 << ntz
+            val ops = uncheckedPure[Int]("1l << ", readVar(ntz))
             bitmap = readVar(bitmap) ^ ops
             //println(ops); println(bitmap)
             k += 1
