@@ -449,7 +449,7 @@ Algorithm Implementations
             val ntz = uncheckedPure[Int]("__builtin_ctzll(", readVar(bitmap), ")")
             // print("ntz = "); print(ntz); print(" ")
             // println(min + 64*i - ntz - 1)
-            inter_data update (level, pos-k, min + 64*i - ntz - 1)
+            inter_data update (level, pos-k, min + 32*i - ntz - 1)
             val ops = 1 << ntz
             bitmap = readVar(bitmap) ^ ops
             //println(ops); println(bitmap)

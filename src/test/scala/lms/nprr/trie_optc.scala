@@ -18,7 +18,7 @@ trait Trie extends Dsl with StagedQueryProcessor {
     val type_uintvec = 1
     val type_bitmap = 2
 
-    val bytes_per_int = 8
+    val bytes_per_int = 4
     val bits_per_int = 8 * bytes_per_int    
   }
 
