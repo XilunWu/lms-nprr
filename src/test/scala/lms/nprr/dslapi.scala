@@ -295,9 +295,10 @@ trait DslGenC extends CGenNumericOps
                   const __m256 m_b = _mm256_loadu_ps((float*) &(bit[j][i]));
                   m_a = _mm256_and_ps(m_a, m_b);
               }
-              //separate r into 4 uint64_t                                                                                             
+              // separate r into 4 uint64_t
+              // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
               for(int index = 0; index < 4; ++index) {
-                  bitmap_256[index] = _mm256_extract_epi64(m_a, index);
+                  bitmap_256[index] = _mm256_extract_epi64((__m256i)m_a, index);
               }
               count += decode(&output[count], bitmap_256, 4, min+i*64);
               i += 4;
