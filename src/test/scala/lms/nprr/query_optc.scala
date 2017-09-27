@@ -416,7 +416,7 @@ Algorithm Implementations
             val end = t.findElemInSetByValue(set, max)
             end
           }
-          bitmap_intersectioon(level, it, start, end, min)
+          simd_bitmap_intersectioon(level, it, start, end, min)
         }
       }
 
@@ -457,6 +457,69 @@ Algorithm Implementations
         }
         pos
       }
+
+      def simd_bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
+        val ints_in_bitmap = end.head - start.head
+        val number_of_relations = arr.length
+        val inputs = NewArray[Array[Int]](number_of_relations)
+        val starts = NewArray[Int](number_of_relations)
+        var i = 0
+        while(i < number_of_relations) {
+          if (i == 0) {
+            if (number_of_relations > 0){              
+              inputs(0) = arr(0).getTrie
+              starts(0) = start(0)
+            }
+            unit()
+          }
+          else if (i == 1) {
+            if (number_of_relations > 1){              
+              inputs(1) = arr(1).getTrie
+              starts(1) = start(1)
+            }
+            unit()            
+          }
+          else if (i == 2) {
+            if (number_of_relations > 2){              
+              inputs(2) = arr(2).getTrie
+              starts(2) = start(2)
+            }
+            unit()
+          }
+          else if (i == 3) {
+            if (number_of_relations > 3){              
+              inputs(3) = arr(3).getTrie
+              starts(3) = start(3)
+            }
+            unit()
+          }
+          else {
+            if (number_of_relations > 4) {
+              inputs(4) = arr(4).getTrie
+              starts(4) = start(4)  
+            }
+            unit()
+          }
+          i += 1
+        }
+        // make inputs int**, in increasing order of cardinality
+        val num_of_ints = uncheckedPure[Int]("simd_bitmap_intersection(", 
+          inter_data(level), 
+          ", ",
+          inputs, 
+          ", ",
+          starts,
+          ",",
+          arr.length,
+          ",",
+          ints_in_bitmap,
+          ", ",
+          min,
+          ")"
+        )
+        num_of_ints
+      }
+
 
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
