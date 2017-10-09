@@ -28,3 +28,9 @@ Snyder, 1 node/20ppn, 20GB MEM
 	129269793 microseconds
 	[success] Total time: 130 s, completed Sep 27, 2017 1:01:25 AM
 
+2017/09/28
+When I run gplus_test on Snyder with the follwing settings, it gives these results:
+1 node/10 ppn/csit queue: Killed (because of starvation?)
+1 node/20 ppn/csit queue: 57s
+
+compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native

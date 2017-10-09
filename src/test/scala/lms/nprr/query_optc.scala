@@ -242,6 +242,8 @@ Query Interpretation = Compilation
       unchecked[Unit]("begin = clock()")
       nprr.run(yld)
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
+      unchecked[Unit]("printf(\"Union time: %f\\n\", union_time)")
+      unchecked[Unit]("printf(\"Decode time: %f\\n\", decoding_time)")
 
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
