@@ -325,7 +325,7 @@ trait DslGenC extends CGenNumericOps
           return count;
       }
 
-      uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t * *bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
+      uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
       bitmap_size, uint64_t min) {
           uint64_t **bitmap_start = (uint64_t**)malloc(num_of_maps * sizeof(uint64_t *));
 
@@ -396,7 +396,7 @@ abstract class DslDriverC[A:Manifest,B:Manifest] extends DslSnippet[A,B] with Ds
     //TODO: use precompile
     (new java.io.File("/tmp/snippet")).delete
     import scala.sys.process._
-    (s"cc -std=c11 -march=native -O3 /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
+    (s"cc  -mavx2 -fPIC -std=c11 -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
     // Just compile without running on my laptop
     (s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
   }

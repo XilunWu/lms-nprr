@@ -505,17 +505,18 @@ Algorithm Implementations
           i += 1
         }
         // make inputs int**, in increasing order of cardinality
-        val num_of_ints = uncheckedPure[Int]("simd_bitmap_intersection(", 
+        val num_of_ints = uncheckedPure[Int](
+          "simd_bitmap_intersection((uint64_t *)", 
           inter_data(level), 
-          ", ",
+          ", (uint64_t **)",
           inputs, 
-          ", ",
+          ", (uint64_t *)",
           starts,
-          ",",
+          ", (uint64_t)",
           arr.length,
-          ",",
+          ", (uint64_t)",
           ints_in_bitmap,
-          ", ",
+          ", (uint64_t)",
           min,
           ")"
         )
