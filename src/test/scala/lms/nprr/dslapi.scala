@@ -283,9 +283,11 @@ trait DslGenC extends CGenNumericOps
 
       // Timer Variables
       // clock_t encoding_time_begin, encoding_time_end;
+      /*
       clock_t decoding_time_begin, decoding_time_end;
       clock_t union_time_begin, union_time_end;
       double decoding_time, union_time;
+      */
 
       uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min);
 
@@ -296,14 +298,14 @@ trait DslGenC extends CGenNumericOps
 
           uint64_t *bitmap_256 = (uint64_t*)malloc(4 * sizeof(uint64_t));
           while ((i+4) < bitmap_size) {
-              union_time_begin = clock();
+              // union_time_begin = clock();
               __m256 m_a = _mm256_loadu_ps((float*) &(bit[0][i]));
               for(int j = 1; j < num_of_maps; ++j) {
                   const __m256 m_b = _mm256_loadu_ps((float*) &(bit[j][i]));
                   m_a = _mm256_and_ps(m_a, m_b);
               }
-              union_time_end = clock();
-              union_time += (double)(union_time_end - union_time_begin) / CLOCKS_PER_SEC;
+              // union_time_end = clock();
+              // union_time += (double)(union_time_end - union_time_begin) / CLOCKS_PER_SEC;
 
               // separate r into 4 uint64_t
               // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
@@ -336,7 +338,7 @@ trait DslGenC extends CGenNumericOps
       }
 
       uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
-          decoding_time_begin = clock();
+          // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
           while (i < len) {
@@ -350,8 +352,8 @@ trait DslGenC extends CGenNumericOps
               }
               i += 1;
           }
-          decoding_time_end = clock();
-          decoding_time += (double)(decoding_time_end - decoding_time_begin) / CLOCKS_PER_SEC;
+          // decoding_time_end = clock();
+          // decoding_time += (double)(decoding_time_end - decoding_time_begin) / CLOCKS_PER_SEC;
           return count;
       }
       """)
