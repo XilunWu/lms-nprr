@@ -339,14 +339,7 @@ trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
 	        	// print("value = "); print(value); print("; next = "); println(addr_index_new)
 	        	// println(bitTrie(addr+start_of_index_section+index_in_bitmap))
 	        	val (_, _, _, size_of_child_bitset) = get_info_bitset(level+1, indexArray(level, i), indexArray(level, i+1))
-	        	/*
-	        	val min_of_children = valueArray(level+1, indexArray(level, i))
-	        	val max_of_children = valueArray(level+1, indexArray(level, i+1)-1)
-	        	val min_in_child_bitmap = min_of_children & (~(bits_per_int-1))
-	        	val max_in_child_bitmap = (max_of_children+bits_per_int-1) & (~(bits_per_int-1))
-	        	val size_of_child_bitmap = (max_in_child_bitmap - min_in_child_bitmap) / bits_per_int
-	        	val size_of_child_bitset = sizeof_bit_set_header + size_of_child_bitmap + (max_in_child_bitmap - min_in_child_bitmap)
-	        	*/
+
 	        	addr_index_new += size_of_child_bitset
 					}
 	      	i += 1

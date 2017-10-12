@@ -4,7 +4,7 @@ import scala.lms.common._
 
 object query_optc {
 trait QueryCompiler extends Dsl with StagedQueryProcessor
-with ScannerLowerBase with Trie {
+with ScannerLowerBase with Trie with Intersection{
   override def version = "query_optc"
 /**
 Input File Tokenizer
@@ -407,7 +407,7 @@ Algorithm Implementations
             val e = t.findElemInSetByValue(set, max)
             (s, e)
           } unzip
-          */
+          
           val start = it map { t =>
             val set = head(it indexOf t)
             val start = t.findElemInSetByValue(set, min)
@@ -418,11 +418,17 @@ Algorithm Implementations
             val end = t.findElemInSetByValue(set, max)
             end
           }
-          simd_bitmap_intersectioon(level, it, start, end, min)
+          */
+          it foreach {t =>
+            val i = it indexOf t
+            start(i) = t.findElemInSetByValue(head(i), min)
+            end(i) = t.findElemInSetByValue(head(i), max)
+          }
+          simd_bitmap_intersection(inter_data(level), it.length, arr, start, end, min)
         }
       }
-
-      def bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
+/*
+      def bitmap_intersection(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
         val ints_in_bitmap = end.head - start.head
         var i = 0
         var pos = 0
@@ -460,7 +466,7 @@ Algorithm Implementations
         pos
       }
 
-      def simd_bitmap_intersectioon(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
+      def simd_bitmap_intersection(level: Int, arr: List[BitTrie], start: List[Rep[Int]], end: List[Rep[Int]], min: Rep[Int]) = {
         val ints_in_bitmap = end.head - start.head
         val number_of_relations = arr.length
         val inputs = NewArray[Array[Int]](number_of_relations)
@@ -523,7 +529,7 @@ Algorithm Implementations
         num_of_ints
       }
 
-
+*/
       def intersect_on_level_leapfrog (level : Int) : Rep[Int] = {
         // intersect
         // and put result into inter_data ( level )
