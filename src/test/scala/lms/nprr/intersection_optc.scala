@@ -3,6 +3,10 @@ package scala.lms.nprr
 import scala.lms.common._
 
 trait Intersection extends Dsl with StagedQueryProcessor with UncheckedOps{
+	def bitset_intersect(it: BitTrieIterator, builder: BitTrieBuilder): Set = {
+		val data = builder.getData
+	}
+
 	def simd_bitmap_intersection(res: Rep[Array[Int]], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
 		val length = end(0)-start(0)
 		val num_of_ints = uncheckedPure[Int](
@@ -251,7 +255,7 @@ trait NprrJoinImp extends Trie with Intersection {
   		tries map {t => 
   			new BitTrieIterator(t)}}
   	val builder = new BitTrieBuilder(new BitTrie(result, schema))
-  	// join on level 0 and build result trie
+  	// Trie is now stored in pre-order instead
   	/*
   	private val iterator_0 = iterator.filter( t => t.getSchema.contains(schema(level)))
     private val result_set = bitset_intersect(
@@ -278,7 +282,8 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 			// Don't forget to build the trie
 		  val result_set = bitset_intersect(
-		  	iterator_i
+		  	iterator_i,
+		  	builder
 		  )
 
   		if (is_last_attr) 
@@ -287,10 +292,11 @@ trait NprrJoinImp extends Trie with Intersection {
   				unit()  // necessary???
   			}
   	  else result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
-  		// foreach (f: Rep[Int=>Unit]): Rep[Unit]
-  		// define class Set 
   	}
   }
+
+
+
   // search functions for UInteTrie
   def get_uint_trie_elem(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
     val start_of_elem = trie_const.sizeof_uint_set_header
