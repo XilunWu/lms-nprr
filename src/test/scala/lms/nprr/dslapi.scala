@@ -291,7 +291,8 @@ trait DslGenC extends CGenNumericOps
 
       uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min);
 
-      uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
+      // bitset INTERSECT bitset -> uintvec
+      inline `uint64_t simd_bitmap_intersection_helper_old(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
           //we assume equal size and bitmaps all are already aligned here:                                                             
           uint64_t i = 0;
           uint64_t count = 0;
@@ -327,7 +328,62 @@ trait DslGenC extends CGenNumericOps
           return count;
       }
 
-      uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
+      // bitset INTERSECT bitset -> bitset
+      inline uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
+          //we assume equal size and bitmaps all are already aligned here:                                                             
+          uint64_t i = 0;
+          uint64_t j = 0;
+          uint64_t new_min = 0;
+          uint64_t new_range = 0;
+          uint64_t count = 0;
+
+          while ((i+4) < bitmap_size) {
+              // union_time_begin = clock();
+              __m256 m_a = _mm256_loadu_ps((float*) &(bit[0][i]));
+              for(int j = 1; j < num_of_maps; ++j) {
+                  const __m256 m_b = _mm256_loadu_ps((float*) &(bit[j][i]));
+                  m_a = _mm256_and_ps(m_a, m_b);
+              }
+              // union_time_end = clock();
+              // union_time += (double)(union_time_end - union_time_begin) / CLOCKS_PER_SEC;
+
+              // separate r into 4 uint64_t
+              // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
+              for(int index = 0; index < 4; ++index) {
+                  uint64_t c = _mm256_extract_epi64((__m256i)m_a, index);
+                  if (c == 0 && j == 0) new_min += 64;
+                  else {
+                    output[j++] = c;
+                    if (c != 0) {
+                      count += __builtin_popcountll(c);
+                    }
+                  }
+              }
+              i += 4;
+          }
+          uint64_t i_tmp = i;
+          while (i < bitmap_size) {
+              uint64_t c = bit[0][i];
+              for(int j = 1; j < num_of_maps; ++j) a &= bit[j][i];
+              if (c == 0 && j == 0) new_min += 64;
+              else {
+                output[j++] = c;
+                if (c != 0) {
+                  count += __builtin_popcountll(c);
+                }
+              }
+              i += 1;
+          }
+          // find range
+          while (output[--j] == 0);
+          new_range = j+1;
+          *(output-1) = new_min + min;
+          *(output-2) = new_range;
+          *(output-3) = count;
+          return count;
+      }
+
+      inline uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
       bitmap_size, uint64_t min) {
           uint64_t **bitmap_start = (uint64_t**)malloc(num_of_maps * sizeof(uint64_t *));
 
@@ -337,7 +393,7 @@ trait DslGenC extends CGenNumericOps
           return simd_bitmap_intersection_helper(output, bitmap_start, num_of_maps, bitmap_size, min);
       }
 
-      uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
+      inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
           // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
@@ -355,6 +411,9 @@ trait DslGenC extends CGenNumericOps
           // decoding_time_end = clock();
           // decoding_time += (double)(decoding_time_end - decoding_time_begin) / CLOCKS_PER_SEC;
           return count;
+      }
+      inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t start, uint64_t len, uint64_t min) {
+        return decode(vec, &bitmap[start], len, min);
       }
       """)
     }

@@ -32,7 +32,6 @@ trait NprrJoinImp extends Trie with Intersection {
   // Option: Inline / not Inline
   // 1. Have an expanded if-then-else branch for each level
   // 2. Not expand at all
-	def nprr_recursive = {}
 	def nprr_iterative (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
 			val count = var_new[Long](0l)
       val curr_set = new Matrix(schema.length, tries.length)
@@ -244,41 +243,88 @@ trait NprrJoinImp extends Trie with Intersection {
         len
       }
     }
+  def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit]= {
+  	val count = var_new[Long](0l)
+  	val result = new ArrayBuffer (initRawDataLen << 2)
+  	// iterator(tid)(trie)
+  	val iterator = (0 until 1).toList.map{_ => 
+  		tries map {t => 
+  			new BitTrieIterator(t)}}
+  	val builder = new BitTrieBuilder(new BitTrie(result, schema))
+  	// join on level 0 and build result trie
+  	/*
+  	private val iterator_0 = iterator.filter( t => t.getSchema.contains(schema(level)))
+    private val result_set = bitset_intersect(
+    	iterator_0
+    	new SetBuilder(result, 0)
+    )
+    */
+    nprr_subtrie(0).apply(0)
+    if (schema.length >= 2) result_set foreach nprr_subtrie(1)
 
-    // search functions for UInteTrie
-    def get_uint_trie_elem(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
-      val start_of_elem = trie_const.sizeof_uint_set_header
-      arr(head + start_of_elem + index)
-    }
-    def uint_trie_reach_end(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
-      val card = arr(head + trie_const.loc_of_cardinality)
-      index >= card
-    }
-    // function uint_trie_geq returns the index of first element in array
-    // which is no less than value. 
-    def uint_trie_geq(arr: Rep[Array[Int]], head: Rep[Int], value: Rep[Int], init_start: Rep[Int]) = {
-      val card = arr(head + trie_const.loc_of_cardinality)
-      //print("card = "); println(card)
-      var start = head + trie_const.sizeof_uint_set_header + init_start
-      var end = head + trie_const.sizeof_uint_set_header + card
-      // search among arr(start) and arr(end)
-      var size = end - start
-      while (size > 5) {
-        val mid_point = (start + end) / 2
-        val pivot = arr(mid_point)
-        if (pivot < value) start = mid_point + 1
-        else if (pivot > value) end = mid_point + 1
-        else {
-          start = mid_point
-          end = mid_point + 1
-        }
-        size = end - start
+  	// write func (Rep[A] => Rep[B]) and pass it as lambda
+  	// by def fundef[A,B](f: Rep[A] => Rep[B]): Rep[A] => Rep[B] =
+    // 			(x: Rep[A]) => lambda(f).apply(x)
+    // Rep[A] => Rep[B] <-> Rep[A => B] (apply / fun)
+  	def nprr_subtrie (level: Int) = lambda { x => // x is the parent of set on level
+  		val is_last_attr = (level == schema.length-1)
+  		// find children sets on level of value x.
+  		// intersect those sets.
+			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
+			val lv_in_rels = iterator_i.map{ t => t.getSchema indexOf schema(level)}
+			(iterator_i,lv_in_rels) zipped foreach { (t, lv) =>
+				if (lv == 0) t.getHead
+				else t.getChild(lv-1, x)
+			}
+			// Don't forget to build the trie
+		  val result_set = bitset_intersect(
+		  	iterator_i
+		  )
+
+  		if (is_last_attr) 
+  			{
+  				count += result_set get_cardinality
+  				unit()  // necessary???
+  			}
+  	  else result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
+  		// foreach (f: Rep[Int=>Unit]): Rep[Unit]
+  		// define class Set 
+  	}
+  }
+  // search functions for UInteTrie
+  def get_uint_trie_elem(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
+    val start_of_elem = trie_const.sizeof_uint_set_header
+    arr(head + start_of_elem + index)
+  }
+  def uint_trie_reach_end(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
+    val card = arr(head + trie_const.loc_of_cardinality)
+    index >= card
+  }
+  // function uint_trie_geq returns the index of first element in array
+  // which is no less than value. 
+  def uint_trie_geq(arr: Rep[Array[Int]], head: Rep[Int], value: Rep[Int], init_start: Rep[Int]) = {
+    val card = arr(head + trie_const.loc_of_cardinality)
+    //print("card = "); println(card)
+    var start = head + trie_const.sizeof_uint_set_header + init_start
+    var end = head + trie_const.sizeof_uint_set_header + card
+    // search among arr(start) and arr(end)
+    var size = end - start
+    while (size > 5) {
+      val mid_point = (start + end) / 2
+      val pivot = arr(mid_point)
+      if (pivot < value) start = mid_point + 1
+      else if (pivot > value) end = mid_point + 1
+      else {
+        start = mid_point
+        end = mid_point + 1
       }
-      var i = 0
-      while (i < size && arr(start + i) < value) {
-        //print("curr_v = "); print(arr(start+i)); print(" < value = "); println(value)
-        i += 1
-      }
-      (start + i) - (head + trie_const.sizeof_uint_set_header)
+      size = end - start
     }
+    var i = 0
+    while (i < size && arr(start + i) < value) {
+      //print("curr_v = "); print(arr(start+i)); print(" < value = "); println(value)
+      i += 1
+    }
+    (start + i) - (head + trie_const.sizeof_uint_set_header)
+  }
 }
