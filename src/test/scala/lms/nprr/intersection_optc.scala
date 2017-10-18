@@ -284,7 +284,6 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 			// Don't forget to build the trie
 		  val result_set = builder.build_set(level, iterator_i)
-		  println(result_set getCardinality)
   		if (is_last_attr) 
 			{
 				count = count + (result_set getCardinality).toLong
