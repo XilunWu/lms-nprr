@@ -379,7 +379,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     def getSchema = schema
 
     def apply(i: Rep[Int]) = bitTrie.arr(i)
-
+  /*
     // set-level method 
     def findChildSetByValue ( set : Rep[Int], value : Rep[Int] ) = {
       // This can be done by helper function. Replace it later
@@ -402,6 +402,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       val index = (rounded_value - min_in_bitmap) / bits_per_int
       set + sizeof_bit_set_header + index
     }
+  */
   }
 
   case class BitTrieIterator (trie: BitTrie) {
