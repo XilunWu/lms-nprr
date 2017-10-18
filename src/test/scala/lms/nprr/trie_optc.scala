@@ -7,19 +7,22 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
   object trie_const {
     val initRawDataLen  = (1 << 16)
 
-    val loc_of_type = 0
-    val loc_of_cardinality = 1
-    val loc_of_bitmap_min = 2
-    val loc_of_bitmap_max = 3
+    val loc_type = 0
+    val loc_cardinality = 1
+    // bitset:  size = header + range + 64*range
+    // uintvec: szie = header + 2 * cardinality
+    val loc_range = 2  // range = (max - min)/64
+    val loc_min = 3
 
-    val sizeof_uint_set_header = 2
-    val sizeof_bit_set_header = 4
+    val sizeof_bitset_header = 4
+    val sizeof_uintvec_header = 4
 
     val type_uintvec = 1
     val type_bitmap = 2
+    val type_hybrid = 3
 
     val bytes_per_int = 8
-    val bits_per_int = 8 * bytes_per_int
+    val bits_per_int = 8 * bytes_per_int    
   }
 
   case class Matrix (row: Rep[Int], col: Rep[Int]) {
@@ -298,10 +301,10 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       var addr_index_new = addr_index
 
       val (min_in_bitmap, max_in_bitmap, start_of_index_section, size_of_bitset) = get_info_bitset(level, start, end)
-      bitTrie update (addr+loc_of_type, type_bitmap)
-      bitTrie update (addr+loc_of_cardinality, (max_in_bitmap - min_in_bitmap) / bits_per_int)
-      bitTrie update (addr+loc_of_bitmap_min, min_in_bitmap)
-      bitTrie update (addr+loc_of_bitmap_max, max_in_bitmap)
+      bitTrie update (addr+loc_type, type_bitmap)
+      bitTrie update (addr+loc_cardinality, (max_in_bitmap - min_in_bitmap) / bits_per_int)
+      bitTrie update (addr+loc_range, (max_in_bitmap-min_in_bitmap)/64)
+      bitTrie update (addr+loc_min, min_in_bitmap)
 
       var bit_int = 0x0
       var min_in_bit_int = min_in_bitmap

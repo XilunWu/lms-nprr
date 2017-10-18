@@ -258,7 +258,7 @@ trait NprrJoinImp extends Trie with Intersection {
   	// Trie is now stored in prefix order instead
   	var i = 0
   	val data = tries(0).getData
-  	while (i < 10000) { println(data(i)); i += 1 }
+  	// while (i < 10000) { println(data(i)); i += 1 }
 
     nprr_subtrie(0).apply(0)
     println(count)
