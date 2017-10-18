@@ -253,7 +253,7 @@ trait NprrJoinImp extends Trie with Intersection {
   */
   def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit]= {
   	var count = 0l
-  	val result = new ArrayBuffer (1 << 30)
+  	val result = new ArrayBuffer (1 << 20)
   	// iterator(tid)(trie)
   	// just 1 thread
   	val iterator = tries map {t => 
