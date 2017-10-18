@@ -21,7 +21,7 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
     val bytes_per_int = 8
     val bits_per_int = 8 * bytes_per_int
 	}
-	class Set (val addr: Rep[Array[Int]], val head: Rep[Int]) {
+	case class Set (val addr: Rep[Array[Int]], val head: Rep[Int]) {
 		import set_const._
 
 		// val set_type = addr(head+loc_type)
@@ -48,6 +48,8 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 		def getMax = set_min + set_range
 		def findByValue(x: Rep[Int]): Rep[Int] = {
 			val index = x-set_min
+			println("find by value")
+			println(index)
 			return index / 64
 		}
 
@@ -71,7 +73,8 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 				", ",
 				set_range/bits_per_int,
 				", ",
-				set_min
+				set_min,
+				")"
 			)
 			var i = 0
 			while (i < num) {

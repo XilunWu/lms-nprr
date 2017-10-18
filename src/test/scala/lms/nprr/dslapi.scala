@@ -240,6 +240,9 @@ trait DslGenC extends CGenNumericOps
       #include <unistd.h>
       #include <time.h>
       #include <immintrin.h>
+      #include <functional>
+
+      using namespace std;
 
       #ifndef MAP_FILE
       #define MAP_FILE MAP_SHARED
@@ -419,7 +422,7 @@ abstract class DslDriverC[A:Manifest,B:Manifest] extends DslSnippet[A,B] with Ds
     //TODO: use precompile
     (new java.io.File("/tmp/snippet")).delete
     import scala.sys.process._
-    (s"cc  -mavx2 -fPIC -std=c11 -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
+    (s"g++  -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
     // Just compile without running on my laptop
     (s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
   }

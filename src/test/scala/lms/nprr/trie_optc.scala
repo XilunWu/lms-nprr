@@ -22,7 +22,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     val bits_per_int = 8 * bytes_per_int
   }
 
-  class Matrix (row: Rep[Int], col: Rep[Int]) {
+  case class Matrix (row: Rep[Int], col: Rep[Int]) {
     val rows = NewArray[Array[Int]](row)
     val lens = NewArray[Int](row)
 
@@ -62,7 +62,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 
-  class ArrayBuffer (init_len: Rep[Int]) {
+  case class ArrayBuffer (init_len: Rep[Int]) {
   	var arr = NewArray[Int](init_len)
   	var len = init_len
   	def update(index: Rep[Int], value: Rep[Int]) = {
@@ -367,7 +367,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 
-  class BitTrie (bitTrie: ArrayBuffer, schema: Schema) {
+  case class BitTrie (bitTrie: ArrayBuffer, schema: Schema) {
     import trie_const._
     //trie in linear array
 
@@ -401,7 +401,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 
-  class BitTrieIterator (trie: BitTrie) {
+  case class BitTrieIterator (trie: BitTrie) {
     val set_head = NewArray[Int](trie.getSchema.length)
     set_head(0) = 0
 
@@ -421,7 +421,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 
-  class BitTrieBuilder (trie: BitTrie) {
+  case class BitTrieBuilder (trie: BitTrie) {
     import trie_const._
 
     val addr_start_level = NewArray[Int](trie.getSchema.length)

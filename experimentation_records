@@ -41,3 +41,4 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
    #COUNT
    Query execution time: 72.296858
    1656074926
+

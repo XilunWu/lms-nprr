@@ -256,8 +256,12 @@ trait NprrJoinImp extends Trie with Intersection {
   			new BitTrieIterator(t)}
   	val builder = new BitTrieBuilder(new BitTrie(result, schema))
   	// Trie is now stored in prefix order instead
+  	var i = 0
+  	val data = tries(0).getData
+  	while (i < 10000) { println(data(i)); i += 1 }
+
     nprr_subtrie(0).apply(0)
-    // println(count)
+    println(count)
 
 	  def getResultTrie = builder.getResultTrie
   	// write func (Rep[A] => Rep[B]) and pass it as lambda
@@ -287,6 +291,7 @@ trait NprrJoinImp extends Trie with Intersection {
   	  	builder.next_set_to_build_is_lower_level(level)
   	  	result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
   	  	builder.next_set_to_build_is_upper_level(level+1)
+  	  	// don't forget to set up index
   	  }
   	}
   }
