@@ -89,8 +89,10 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			*/
 			var i = 0
 			while (i < num) {
+				/*
 				print("parent: = ")
 				println(values(i))
+				*/
 				f(values(i)); 
 				i += 1
 			}
