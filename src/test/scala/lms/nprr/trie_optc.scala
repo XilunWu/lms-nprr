@@ -287,12 +287,13 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       val v = valueArray(level)
       val min = v(start)
       val max = v(end-1)
-      val min_in_bitmap = min & (~(bits_per_int-1))
-      val max_in_bitmap = (max+bits_per_int) & (~(bits_per_int-1))
+      val card = end-start
+      val min_in_bitmap: Rep[Int] = min & (~(bits_per_int-1))
+      val max_in_bitmap: Rep[Int] = (max+bits_per_int) & (~(bits_per_int-1))
       val size_of_bitmap = (max_in_bitmap - min_in_bitmap) / bits_per_int
-      val start_of_index_section = sizeof_bit_set_header + size_of_bitmap
+      val start_of_index_section = sizeof_bitset_header + size_of_bitmap
       val size_of_bitset = start_of_index_section + (max_in_bitmap - min_in_bitmap)
-      (min_in_bitmap, max_in_bitmap, start_of_index_section, size_of_bitset)
+      (min_in_bitmap, max_in_bitmap, card, start_of_index_section, size_of_bitset)
     }
 
     def buildBitSet(level: Rep[Int], start: Rep[Int], end: Rep[Int], addr: Rep[Int], addr_index: Rep[Int]) = {
@@ -300,10 +301,10 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       var addr_new = addr
       var addr_index_new = addr_index
 
-      val (min_in_bitmap, max_in_bitmap, start_of_index_section, size_of_bitset) = get_info_bitset(level, start, end)
+      val (min_in_bitmap, max_in_bitmap, cardinality, start_of_index_section, size_of_bitset) = get_info_bitset(level, start, end)
       bitTrie update (addr+loc_type, type_bitmap)
-      bitTrie update (addr+loc_cardinality, (max_in_bitmap - min_in_bitmap) / bits_per_int)
-      bitTrie update (addr+loc_range, (max_in_bitmap-min_in_bitmap)/64)
+      bitTrie update (addr+loc_cardinality, cardinality)
+      bitTrie update (addr+loc_range, (max_in_bitmap-min_in_bitmap) / bits_per_int)
       bitTrie update (addr+loc_min, min_in_bitmap)
 
       var bit_int = 0x0
@@ -314,7 +315,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
         val value = v(i)
         if (value - min_in_bit_int >= bits_per_int) {
           while (value - min_in_bit_int >= bits_per_int) { 
-            bitTrie update (addr+sizeof_bit_set_header+pos, bit_int)
+            bitTrie update (addr+sizeof_bitset_header+pos, bit_int)
             bit_int = 0x0
             pos += 1
             min_in_bit_int += bits_per_int 
@@ -337,7 +338,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
           i += 1
         }
       }
-      bitTrie update (addr+sizeof_bit_set_header+pos, bit_int)
+      bitTrie update (addr+sizeof_bitset_header+pos, bit_int)
       addr_new = addr + size_of_bitset
       (addr_new, addr_index_new)
     }
