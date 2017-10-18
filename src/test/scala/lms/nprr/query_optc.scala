@@ -233,7 +233,7 @@ Query Interpretation = Compilation
           }
         }
         //bintrie.buildIntTrie 
-        loader.buildBitTrie         
+        loader.buildBitTrie
       }
       
       //Measure data loading and preprocessing time

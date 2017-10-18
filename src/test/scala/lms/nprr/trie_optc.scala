@@ -88,11 +88,6 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     	}
     }
   }
-
-  class Trie (val schema: Schema) {
-    import trie_const._
-		
-  }
 /*
   class IntTrie (val schema: Schema) {
     import trie_const._
@@ -371,6 +366,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       new BitTrie(bitTrie, schema)
     }
   }
+
   class BitTrie (bitTrie: ArrayBuffer, schema: Schema) {
     import trie_const._
     //trie in linear array
@@ -404,6 +400,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       set + sizeof_bit_set_header + index
     }
   }
+
   class BitTrieIterator (trie: BitTrie) {
     val set_head = NewArray[Int](trie.getSchema.length)
     set_head(0) = 0
@@ -423,6 +420,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       return new Set(trie.getData, head)
     }
   }
+
   class BitTrieBuilder (trie: BitTrie) {
     import trie_const._
 
@@ -458,7 +456,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
           if (min_tmp > min) min = min_tmp
           if (max_tmp < max) max = max_tmp
       }
-      val cardinality = 
+      val cardinality:Rep[Int] = 
         if (min >= max) 0
         else {
           // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
