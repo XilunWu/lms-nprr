@@ -276,7 +276,7 @@ trait DslGenC extends CGenNumericOps
         Snippet(argv[1]);
         return 0;
       }
-      int string_toInt(const char * s)
+      inline int string_toInt(const char * s)
       {
         return atoi(s);
       }
@@ -288,47 +288,10 @@ trait DslGenC extends CGenNumericOps
       clock_t union_time_begin, union_time_end;
       double decoding_time, union_time;
       */
-
-      uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min);
-
-      // bitset INTERSECT bitset -> uintvec
-      inline `uint64_t simd_bitmap_intersection_helper_old(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
-          //we assume equal size and bitmaps all are already aligned here:                                                             
-          uint64_t i = 0;
-          uint64_t count = 0;
-
-          uint64_t *bitmap_256 = (uint64_t*)malloc(4 * sizeof(uint64_t));
-          while ((i+4) < bitmap_size) {
-              // union_time_begin = clock();
-              __m256 m_a = _mm256_loadu_ps((float*) &(bit[0][i]));
-              for(int j = 1; j < num_of_maps; ++j) {
-                  const __m256 m_b = _mm256_loadu_ps((float*) &(bit[j][i]));
-                  m_a = _mm256_and_ps(m_a, m_b);
-              }
-              // union_time_end = clock();
-              // union_time += (double)(union_time_end - union_time_begin) / CLOCKS_PER_SEC;
-
-              // separate r into 4 uint64_t
-              // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
-              for(int index = 0; index < 4; ++index) {
-                  bitmap_256[index] = _mm256_extract_epi64((__m256i)m_a, index);
-              }
-              count += decode(&output[count], bitmap_256, 4, min+i*64);
-              i += 4;
-          }
-          uint64_t i_tmp = i;
-          while (i < bitmap_size) {
-              uint64_t a = bit[0][i];
-              for(int j = 1; j < num_of_maps; ++j) a &= bit[j][i];
-              bitmap_256[i-i_tmp] = a;
-              i += 1;
-          }
-          count += decode(&output[count], bitmap_256, i-i_tmp, min+i_tmp*64);
-          free(bitmap_256);
-          return count;
-      }
+      uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min);
 
       // bitset INTERSECT bitset -> bitset
+      // HEAD: type | cardinality | range | min
       inline uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
           //we assume equal size and bitmaps all are already aligned here:                                                             
           uint64_t i = 0;
@@ -364,7 +327,7 @@ trait DslGenC extends CGenNumericOps
           uint64_t i_tmp = i;
           while (i < bitmap_size) {
               uint64_t c = bit[0][i];
-              for(int j = 1; j < num_of_maps; ++j) a &= bit[j][i];
+              for(int j = 1; j < num_of_maps; ++j) c &= bit[j][i];
               if (c == 0 && j == 0) new_min += 64;
               else {
                 output[j++] = c;
@@ -379,21 +342,20 @@ trait DslGenC extends CGenNumericOps
           new_range = j+1;
           *(output-1) = new_min + min;
           *(output-2) = new_range;
-          *(output-3) = count;
           return count;
       }
 
-      inline uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
+      inline uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t head, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
       bitmap_size, uint64_t min) {
           uint64_t **bitmap_start = (uint64_t**)malloc(num_of_maps * sizeof(uint64_t *));
 
           for(int i = 0; i < num_of_maps; ++i) {
               bitmap_start[i] = bit[i]+start[i];
           }
-          return simd_bitmap_intersection_helper(output, bitmap_start, num_of_maps, bitmap_size, min);
+          return simd_bitmap_intersection_helper(&output[head], bitmap_start, num_of_maps, bitmap_size, min);
       }
 
-      inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
+      inline uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
           // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
@@ -413,7 +375,7 @@ trait DslGenC extends CGenNumericOps
           return count;
       }
       inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t start, uint64_t len, uint64_t min) {
-        return decode(vec, &bitmap[start], len, min);
+        return decode2(vec, &bitmap[start], len, min);
       }
       """)
     }

@@ -225,22 +225,21 @@ Query Interpretation = Compilation
       }
     case NprrJoin(parents, outSchema, num_threads) =>
       val tries = parents.map { p => 
-        val bintrie = new BitTrie(resultSchema(p))
-        execOp(p) { rec => bintrie += 
+        val loader = new BitTrieLoader(resultSchema(p))
+        execOp(p) { rec => loader += 
           rec.fields.map {
             case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
             case RString (str: Rep[String], len: Rep[Int]) => str.toInt
           }
         }
         //bintrie.buildIntTrie 
-        bintrie.buildBitTrie         
-        bintrie
+        loader.buildBitTrie         
       }
       
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
-      nprr_iterative (tries, outSchema)
+      nprr_lambda (tries, outSchema)
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // unchecked[Unit]("printf(\"Union time: %f\\n\", union_time)")
       // unchecked[Unit]("printf(\"Decode time: %f\\n\", decoding_time)")
@@ -261,15 +260,6 @@ Algorithm Implementations
 Data Structure Implementations
 ------------------------------
 */
-  /*
-  def foreach[T] (arr: Rep[Array[T]], func: Rep[T] => Rep[Unit]) {
-    var i = 0
-    while (i < arr.length) {
-      func(arr(i))
-      i += 1
-    }
-  }
-  */
 
   abstract class ColBuffer
   case class IntColBuffer(data: Rep[Array[Int]]) extends ColBuffer

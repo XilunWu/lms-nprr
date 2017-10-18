@@ -2,9 +2,9 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
+trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with UncheckedOps {
 
-  object trie_const{
+  object trie_const {
     val initRawDataLen  = (1 << 16)
 
     val loc_of_type = 0
@@ -93,7 +93,7 @@ trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
     import trie_const._
 		
   }
-
+/*
   class IntTrie (val schema: Schema) {
     import trie_const._
     //index(i) is the start of child of value(i)
@@ -257,8 +257,9 @@ trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
       index >= card
     }
   }
-
+*/
   class BitTrieLoader (val schema: Schema) {
+    import trie_const._
     //index(i) is the start of child of value(i)
     //the intermediate datum used while generating uintTrie
     val indexArray = new Matrix (schema.length, initRawDataLen)
@@ -404,19 +405,79 @@ trait Trie extends Dsl with StagedQueryProcessor with UncheckedOps{
     }
   }
   class BitTrieIterator (trie: BitTrie) {
-    val set_head = trie.getSchema.map {_ => 0: Rep[Int]}
+    val set_head = NewArray[Int](trie.getSchema.length)
+    set_head(0) = 0
 
-    def getHead = { set_head(0) = 0 }
     def getSchema = trie.getSchema
     def getData = trie.getData
     def getSetHead(level: Int) = set_head(level)
-    def getChild(level: Int, x: Rep[Int]) = { // x is the parent on level
-
+    def getChild(level: Int, x: Rep[Int]) = { // x is the parent on level-1
+      // set iterator on level to the child set of x
+      val data = trie.getData
+      val curr_set = set_head(level-1)
+      // find x in curr_set
+      val set = new Set(data, curr_set)
+      set_head(level) = set.getChild(x)
+    }
+    def getSet(head: Rep[Int]): Set = {
+      return new Set(trie.getData, head)
     }
   }
   class BitTrieBuilder (trie: BitTrie) {
-    val addr_start_level = trie.getSchema.map {_ => 0: Rep[Int]}
+    import trie_const._
 
+    val addr_start_level = NewArray[Int](trie.getSchema.length)
+    val next_set_to_build = NewArray[Int](trie.getSchema.length)
 
+    def getResultTrie = trie
+    def next_set_to_build_is_upper_level(level: Int) = { // up build: parent's sibling
+      next_set_to_build(level-1) = next_set_to_build(level)
+    }
+    def next_set_to_build_is_lower_level(level: Int) = {
+      next_set_to_build(level+1) = next_set_to_build(level)
+    }
+    def build_set(level: Int, it: List[BitTrieIterator]): Set = {
+      val arr = NewArray[Array[Int]]( it.length )
+      it foreach { t =>
+          arr(it indexOf t) = t.getData
+      }
+      val head = NewArray[Int]( it.length )
+      it foreach { t =>
+          head(it indexOf t) = t.getSetHead(level)
+      }
+      // Step1: align all bitmaps
+      val start = NewArray[Int]( it.length )
+      val end = NewArray[Int]( it.length )
+      var min = it.head.getSet(head(0)).getMin // max of min's
+      var max = it.head.getSet(head(0)).getMax // min of max's
+      // Step1.1: find the overlap of bitmaps
+      it foreach { t =>
+          val set_i = head(it indexOf t)
+          val min_tmp = t.getSet(set_i).getMin
+          val max_tmp = t.getSet(set_i).getMax
+          if (min_tmp > min) min = min_tmp
+          if (max_tmp < max) max = max_tmp
+      }
+      val cardinality = 
+        if (min >= max) 0
+        else {
+          // Step 1.2: pass min, max as "start" and "end" into func bit_intersection.
+          it foreach {t =>
+            val i = it indexOf t
+            start(i) = t.getSet(head(i)).findByValue(min)
+            end(i) = t.getSet(head(i)).findByValue(max)
+          }
+          simd_bitmap_intersection(trie.getData, next_set_to_build(level), it.length, arr, start, end, min)
+        }
+      val set_head = next_set_to_build(level)
+      // make header: type | cardinality
+      val data = trie.getData
+      data(set_head+loc_of_type) = type_bitmap
+      data(set_head+loc_of_cardinality) = cardinality
+      val result_set = new Set(data, set_head)
+      // update next_set_to_build
+      next_set_to_build(level) = next_set_to_build(level) + result_set.getSize
+      return result_set
+    }
   }
 }

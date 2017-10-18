@@ -34,3 +34,10 @@ When I run gplus_test on Snyder with the follwing settings, it gives these resul
 1 node/20 ppn/csit queue: 57s
 
 compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native
+
+
+2017/10/18
+1. Inline all functions in the old gplus_test.c. Result: becomes slower
+   #COUNT
+   Query execution time: 72.296858
+   1656074926

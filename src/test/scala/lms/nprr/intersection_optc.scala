@@ -2,16 +2,14 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait Intersection extends Dsl with StagedQueryProcessor with UncheckedOps{
-	def bitset_intersect(it: BitTrieIterator, builder: BitTrieBuilder): Set = {
-		val data = builder.getData
-	}
-
-	def simd_bitmap_intersection(res: Rep[Array[Int]], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
+trait Intersection extends Dsl with UncheckedOps {
+	def simd_bitmap_intersection(res: Rep[Array[Int]], set_head: Rep[Int], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
 		val length = end(0)-start(0)
 		val num_of_ints = uncheckedPure[Int](
           "simd_bitmap_intersection((uint64_t *)", 
           res, 
+          ", ",
+          set_head,
           ", (uint64_t **)",
           arr, 
           ", (uint64_t *)",
@@ -36,6 +34,7 @@ trait NprrJoinImp extends Trie with Intersection {
   // Option: Inline / not Inline
   // 1. Have an expanded if-then-else branch for each level
   // 2. Not expand at all
+  /*
 	def nprr_iterative (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
 			val count = var_new[Long](0l)
       val curr_set = new Matrix(schema.length, tries.length)
@@ -247,57 +246,54 @@ trait NprrJoinImp extends Trie with Intersection {
         len
       }
     }
+  */
   def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit]= {
-  	val count = var_new[Long](0l)
-  	val result = new ArrayBuffer (initRawDataLen << 2)
+  	var count = 0l
+  	val result = new ArrayBuffer (1 << 20)
   	// iterator(tid)(trie)
-  	val iterator = (0 until 1).toList.map{_ => 
-  		tries map {t => 
-  			new BitTrieIterator(t)}}
+  	// just 1 thread
+  	val iterator = tries map {t => 
+  			new BitTrieIterator(t)}
   	val builder = new BitTrieBuilder(new BitTrie(result, schema))
-  	// Trie is now stored in pre-order instead
-  	/*
-  	private val iterator_0 = iterator.filter( t => t.getSchema.contains(schema(level)))
-    private val result_set = bitset_intersect(
-    	iterator_0
-    	new SetBuilder(result, 0)
-    )
-    */
+  	// Trie is now stored in prefix order instead
     nprr_subtrie(0).apply(0)
-    if (schema.length >= 2) result_set foreach nprr_subtrie(1)
+    // println(count)
 
+	  def getResultTrie = builder.getResultTrie
   	// write func (Rep[A] => Rep[B]) and pass it as lambda
   	// by def fundef[A,B](f: Rep[A] => Rep[B]): Rep[A] => Rep[B] =
     // 			(x: Rep[A]) => lambda(f).apply(x)
     // Rep[A] => Rep[B] <-> Rep[A => B] (apply / fun)
-  	def nprr_subtrie (level: Int) = lambda { x => // x is the parent of set on level
+    // Note: foreach can be done differently for uint/bitset
+  	def nprr_subtrie (level: Int): Rep[Int=>Unit] = fun { x: Rep[Int] => // x is the parent of set on level
   		val is_last_attr = (level == schema.length-1)
   		// find children sets on level of value x.
   		// intersect those sets.
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
 			val lv_in_rels = iterator_i.map{ t => t.getSchema indexOf schema(level)}
-			(iterator_i,lv_in_rels) zipped foreach { (t, lv) =>
-				if (lv == 0) t.getHead
-				else t.getChild(lv-1, x)
+			(iterator_i,lv_in_rels).zipped.foreach { (t, lv) =>
+				if (lv == 0) t.getSetHead(lv)
+				else t.getChild(lv, x)
 			}
 			// Don't forget to build the trie
-		  val result_set = bitset_intersect(
-		  	iterator_i,
-		  	builder
-		  )
+		  val result_set = builder.build_set(level, iterator_i)
 
   		if (is_last_attr) 
-  			{
-  				count += result_set get_cardinality
-  				unit()  // necessary???
-  			}
-  	  else result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
+			{
+				count = count + (result_set getCardinality).toLong
+				unit()  // necessary???
+			}
+  	  else {
+  	  	builder.next_set_to_build_is_lower_level(level)
+  	  	result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
+  	  	builder.next_set_to_build_is_upper_level(level+1)
+  	  }
   	}
   }
 
 
-
   // search functions for UInteTrie
+  /*
   def get_uint_trie_elem(arr: Rep[Array[Int]], head: Rep[Int], index: Rep[Int]) = {
     val start_of_elem = trie_const.sizeof_uint_set_header
     arr(head + start_of_elem + index)
@@ -333,4 +329,5 @@ trait NprrJoinImp extends Trie with Intersection {
     }
     (start + i) - (head + trie_const.sizeof_uint_set_header)
   }
+  */
 }

@@ -2,9 +2,8 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-object set_const {
-	object trie_const{
-
+trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
+	object set_const {
     val loc_type = 0
     val loc_cardinality = 1
     // bitset:  size = header + range + 64*range
@@ -21,41 +20,64 @@ object set_const {
 
     val bytes_per_int = 8
     val bits_per_int = 8 * bytes_per_int
-  }
-}
-class Set (val addr: Rep[Array[Int]], val head: Rep[Int]) {
-	import set_const._
-
-	val set_type = addr(head+loc_type)
-	val set_cardinality = addr(head+loc_cardinality)
-	val set_range = addr(head+loc_range)
-	val set_min = addr(head+loc_min)
-
-	def foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
-		/*
-			if (set_type == type_bitmap) 
-			TODO: make it hybrid
-		*/
-		bitset_foreach(f)
 	}
+	class Set (val addr: Rep[Array[Int]], val head: Rep[Int]) {
+		import set_const._
 
-	def bitset_foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
-		val values = NewArray[Int](set_cardinality)
-		val num = uncheckedPure[Int](
-			"decode ((uint64_t *)",
-			values,
-			", (uint64_t *)",
-			addr,
-			", ",
-			head+sizeof_bitset_header,
-			", ",
-			set_range/bits_per_int,
-			", ",
-			set_min
-		)
-		var i = 0
-		while (i < num) {
-			f values(i)
+		// val set_type = addr(head+loc_type)
+		val set_type = type_bitmap
+		val set_cardinality = addr(head+loc_cardinality)
+		val set_range = addr(head+loc_range)
+		val set_min = addr(head+loc_min)
+
+		def getSize = {
+			if (set_type == type_bitmap) {
+				val size = sizeof_bitset_header + (bits_per_int + 1) * set_range 
+				size
+			} else {
+				val size = sizeof_uintvec_header + 2 * set_cardinality
+				size
+			}
+		}
+		def getCardinality = set_cardinality
+		def getChild(x: Rep[Int]): Rep[Int] = {
+      val index = x-set_min
+      return addr(head+sizeof_bitset_header+set_range+index)
+		}
+		def getMin = set_min
+		def getMax = set_min + set_range
+		def findByValue(x: Rep[Int]): Rep[Int] = {
+			val index = x-set_min
+			return index / 64
+		}
+
+		def foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
+			/*
+				if (set_type == type_bitmap) 
+				TODO: make it hybrid
+			*/
+			bitset_foreach(f)
+		}
+
+		def bitset_foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
+			val values = NewArray[Int](set_cardinality)
+			val num = uncheckedPure[Int](
+				"decode ((uint64_t *)",
+				values,
+				", (uint64_t *)",
+				addr,
+				", ",
+				head+sizeof_bitset_header,
+				", ",
+				set_range/bits_per_int,
+				", ",
+				set_min
+			)
+			var i = 0
+			while (i < num) {
+				f(values(i))
+			}
 		}
 	}
+
 }
