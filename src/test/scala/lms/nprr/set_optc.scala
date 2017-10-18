@@ -88,7 +88,7 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			while (i < set_cardinality) {println(values(i)); i += 1}
 			*/
 			var i = 0
-			while (i < num) {
+			while (i < num && i < 10) { 
 				/*
 				print("parent: = ")
 				println(values(i))
