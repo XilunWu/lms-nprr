@@ -48,8 +48,6 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 		def getMax = set_min + bits_per_int * set_range
 		def findByValue(x: Rep[Int]): Rep[Int] = {
 			val index = x-set_min
-			println("find by value")
-			println(index)
 			return head + sizeof_bitset_header + index / 64
 		}
 

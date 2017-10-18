@@ -420,8 +420,6 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       // find x in curr_set
       val set = new Set(data, curr_set)
       set_head(level) = set.getChild(x)
-      print("iterator on set: ")
-      println(set_head(level))
     }
     def getSet(head: Rep[Int]): Set = {
       return new Set(trie.getData, head)
