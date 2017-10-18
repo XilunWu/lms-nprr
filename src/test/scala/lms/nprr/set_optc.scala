@@ -45,12 +45,12 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
       return addr(head+sizeof_bitset_header+set_range+index)
 		}
 		def getMin = set_min
-		def getMax = set_min + set_range
+		def getMax = set_min + bits_per_int * set_range
 		def findByValue(x: Rep[Int]): Rep[Int] = {
 			val index = x-set_min
 			println("find by value")
 			println(index)
-			return index / 64
+			return head + sizeof_bitset_header + index / 64
 		}
 
 		def foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
@@ -63,6 +63,14 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 
 		def bitset_foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
 			val values = NewArray[Int](set_cardinality)
+			/*
+			println(addr)
+			println(head)
+			println(set_type)
+			println(set_cardinality)
+			println(set_range)
+			println(set_min)
+			*/
 			val num = uncheckedPure[Int](
 				"decode ((uint64_t *)",
 				values,
@@ -71,14 +79,22 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 				", ",
 				head+sizeof_bitset_header,
 				", ",
-				set_range/bits_per_int,
+				set_range,
 				", ",
 				set_min,
 				")"
 			)
+			/*
+			println(set_cardinality)
+			var i = 0
+			while (i < set_cardinality) {println(values(i)); i += 1}
+			*/
 			var i = 0
 			while (i < num) {
-				f(values(i))
+				print("parent: = ")
+				println(values(i))
+				f(values(i)); 
+				i += 1
 			}
 		}
 	}

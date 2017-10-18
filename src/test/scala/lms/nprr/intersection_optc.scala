@@ -5,6 +5,8 @@ import scala.lms.common._
 trait Intersection extends Dsl with UncheckedOps {
 	def simd_bitmap_intersection(res: Rep[Array[Int]], set_head: Rep[Int], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
 		val length = end(0)-start(0)
+		println("intersection length = ")
+		println(length)
 		val num_of_ints = uncheckedPure[Int](
           "simd_bitmap_intersection((uint64_t *)", 
           res, 
@@ -258,7 +260,6 @@ trait NprrJoinImp extends Trie with Intersection {
   	// Trie is now stored in prefix order instead
   	var i = 0
   	val data = tries(0).getData
-  	while (i < 10000) { println(data(i)); i += 1 }
 
     nprr_subtrie(0).apply(0)
     println(count)
@@ -281,7 +282,7 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 			// Don't forget to build the trie
 		  val result_set = builder.build_set(level, iterator_i)
-
+		  println(result_set getCardinality)
   		if (is_last_attr) 
 			{
 				count = count + (result_set getCardinality).toLong

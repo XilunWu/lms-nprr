@@ -161,6 +161,8 @@ trait DslGenC extends CGenNumericOps
   }
   override def format(s: Exp[Any]): String = {
     remap(s.tp) match {
+      case "int64_t**" => "%lld"
+      case "int64_t*" => "%lld"
       case "uint16_t" => "%c"
       case "bool" | "int8_t" | "int16_t" | "int32_t" => "%d"
       case "int64_t" => "%lld"
