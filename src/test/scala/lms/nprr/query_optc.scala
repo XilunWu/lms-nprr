@@ -271,6 +271,7 @@ Algorithm Implementations
       val curr_inter_data_index = NewArray[Int](schema.length)
       val inter_data_len = NewArray[Int](schema.length)
 
+      var count = 0
       var level = 0
       // init on curr_set(0), curr_inter_data_index(0), inter_data(0), and inter_data_len(0)
       init
@@ -283,20 +284,8 @@ Algorithm Implementations
         // 2. Not expand at all
         if (level == schema.length - 1) {
           // yld each result because we've found them (stored in inter_data)
-          intersect_on_level(schema.length - 1)
+          count += intersect_on_level(schema.length - 1)
           // TODO: yld(tuple)
-          var row = 0
-          val record = schema.reverse.tail.reverse.map{ attr=>
-            val i = schema indexOf attr
-            RInt(inter_data(i, curr_inter_data_index(i)))
-          }
-          var i = 0
-          while (i < inter_data_len(schema.length - 1)) {
-            yld(Record(
-              record ++ Vector[RField](RInt(inter_data(schema.length - 1, i))), 
-              schema))
-            i += 1
-          }
           // next(): then find next in set on level
           if (schema.length > 1)
             curr_inter_data_index( schema.length - 2 )  =  
@@ -316,6 +305,7 @@ Algorithm Implementations
         }
         else {} //Empty
       }
+      println(count)
 
       def join_on_level(level: Int): Rep[Int] = {
         if ( atEnd( level )) {
