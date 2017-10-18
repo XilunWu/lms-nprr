@@ -276,12 +276,18 @@ trait NprrJoinImp extends Trie with Intersection {
   		val is_last_attr = (level == schema.length-1)
   		// find children sets on level of value x.
   		// intersect those sets.
+
+  		// open on level-1 for x
+  		if (level > 0) {
+  			val iterator_x = iterator.filter( t => t.getSchema.contains(schema(level-1)))
+  			(iterator_x.map{ t => 
+  				t.getSchema indexOf schema(level-1)}
+  				, iterator_x).zipped.foreach { (lv, t) =>
+  				t.getChild(lv, x)
+  			}
+  		}
+
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
-			val lv_in_rels = iterator_i.map{ t => t.getSchema indexOf schema(level)}
-			(iterator_i,lv_in_rels).zipped.foreach { (t, lv) =>
-				if (lv == 0) t.getSetHead(lv)
-				else t.getChild(lv, x)
-			}
 			// Don't forget to build the trie
 		  val result_set = builder.build_set(level, iterator_i)
   		if (is_last_attr) 

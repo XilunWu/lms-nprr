@@ -413,13 +413,13 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     def getSchema = trie.getSchema
     def getData = trie.getData
     def getSetHead(level: Int) = set_head(level)
-    def getChild(level: Int, x: Rep[Int]) = { // x is the parent on level-1
+    def getChild(level: Int, x: Rep[Int]) = { // x is the parent on level
       // set iterator on level to the child set of x
       val data = trie.getData
-      val curr_set = set_head(level-1)
+      val curr_set = set_head(level)
       // find x in curr_set
       val set = new Set(data, curr_set)
-      set_head(level) = set.getChild(x)
+      set_head(level+1) = set.getChild(x)
     }
     def getSet(head: Rep[Int]): Set = {
       return new Set(trie.getData, head)
