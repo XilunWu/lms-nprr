@@ -5,7 +5,7 @@ import scala.lms.common._
 trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with UncheckedOps {
 
   object trie_const {
-    val initRawDataLen  = (1 << 24)
+    val initRawDataLen  = (1 << 16)
 
     val loc_type = 0
     val loc_cardinality = 1
