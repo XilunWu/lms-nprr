@@ -42,3 +42,18 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
    Query execution time: 72.296858
    1656074926
 
+2. Bitset generated for fb_test is of size: (234773967 * sizeof(uint64_t))
+   inline/take out inline doesn't affect the run time. But the lambda makes the program slow.
+      #COUNT
+   	  count = 9672060
+	  Query execution time: 0.481780
+	  3200498 microseconds
+
+3. We need prove that inline in C++ is not as efficient as LMS:
+   1. rewrite our nprr (in iterative or recursive way???) to generate code without lambda expression while doing the same thing. (build result trie and count on the cardinality result).
+   2. don't forget to build index in the result trie.
+   3. Currently, we need estimate the size of result trie and allocate memory beforehand. Can we improve it?
+   4. We can measure the skew in result trie. Maybe by counting skewed sets? Investigate the policy EmptyHeaded takes.
+   5. Can we modify EmptyHeaded code to make everything not inlined and see the performance?
+   6. Implement multithreading version after all those. Need understand how EmptyHeaded store the ParTrie and build the ParTrie
+   
