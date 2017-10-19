@@ -297,7 +297,7 @@ trait DslGenC extends CGenNumericOps
 
       // bitset INTERSECT bitset -> bitset
       // HEAD: type | cardinality | range | min
-      inline uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
+      uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
           //we assume equal size and bitmaps all are already aligned here:                                                             
           uint64_t i = 0;
           uint64_t j = 0;
@@ -365,7 +365,7 @@ trait DslGenC extends CGenNumericOps
           return simd_bitmap_intersection_helper(&output[head], bitmap_start, num_of_maps, bitmap_size, min);
       }
 
-      inline uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
+      uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
           // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
