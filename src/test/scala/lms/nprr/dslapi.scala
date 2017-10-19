@@ -343,10 +343,15 @@ trait DslGenC extends CGenNumericOps
               i += 1;
           }
           // find range
-          while (output[--j] == 0);
-          new_range = j+1;
-          *(output-1) = new_min + min;
-          *(output-2) = new_range;
+          if (j == 0) { // empty set. No intersection
+            *(output-2) = 0;
+          }
+          else {
+            while (output[--j] == 0);
+            new_range = j+1;
+            *(output-1) = new_min + min;
+            *(output-2) = new_range;
+          }
           return count;
       }
 
