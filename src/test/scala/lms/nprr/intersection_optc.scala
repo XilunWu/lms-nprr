@@ -292,7 +292,7 @@ trait NprrJoinImp extends Trie with Intersection {
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
 			// Don't forget to build the trie
 		  val result_set = builder.build_set(level, iterator_i)
-		  println(builder.next_set_to_build)
+		  // println(builder.next_set_to_build)
 		  // println(result_set getCardinality)
 
   		if (is_last_attr) 
