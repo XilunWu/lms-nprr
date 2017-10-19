@@ -434,15 +434,9 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     import trie_const._
 
     val addr_start_level = NewArray[Int](trie.getSchema.length)
-    val next_set_to_build = NewArray[Int](trie.getSchema.length)
+    var next_set_to_build = 0
 
     def getResultTrie = trie
-    def next_set_to_build_is_upper_level(level: Int) = { // up build: parent's sibling
-      next_set_to_build(level-1) = next_set_to_build(level)
-    }
-    def next_set_to_build_is_lower_level(level: Int) = {
-      next_set_to_build(level+1) = next_set_to_build(level)
-    }
     def build_set(level: Int, it: List[BitTrieIterator]): Set = {
       val schema = trie.getSchema
       val lv_in_rels = it.map{ t => t.getSchema indexOf schema(level)}
@@ -476,16 +470,16 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
             start(i) = t.getSet(head(i)).findByValue(min)
             end(i) = t.getSet(head(i)).findByValue(max)
           }
-          simd_bitmap_intersection(trie.getData, next_set_to_build(level)+sizeof_bitset_header, it.length, arr, start, end, min)
+          simd_bitmap_intersection(trie.getData, next_set_to_build+sizeof_bitset_header, it.length, arr, start, end, min)
         }
-      val set_head = next_set_to_build(level)
+      val set_head = next_set_to_build
       // make header: type | cardinality
       val data = trie.getData
       data(set_head+loc_type) = type_bitmap
       data(set_head+loc_cardinality) = cardinality
       val result_set = new Set(data, set_head)
       // update next_set_to_build
-      next_set_to_build(level) = next_set_to_build(level) + result_set.getSize
+      next_set_to_build = next_set_to_build + result_set.getSize
       return result_set
     }
   }

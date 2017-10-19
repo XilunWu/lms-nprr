@@ -253,7 +253,7 @@ trait NprrJoinImp extends Trie with Intersection {
   */
   def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit]= {
   	var count = 0l
-  	val result = new ArrayBuffer (1 << 26)
+  	val result = new ArrayBuffer (1 << 20)
   	// iterator(tid)(trie)
   	// just 1 thread
   	val iterator = tries map {t => 
@@ -282,8 +282,8 @@ trait NprrJoinImp extends Trie with Intersection {
   		if (level > 0) {
   			val iterator_x = iterator.filter( t => t.getSchema.contains(schema(level-1)))
   			(iterator_x.map{ t => 
-  				t.getSchema indexOf schema(level-1)}
-  				, iterator_x).zipped.foreach { (lv, t) =>
+  				t.getSchema indexOf schema(level-1)}, 
+  				iterator_x).zipped.foreach { (lv, t) =>
   				if (lv != t.getSchema.length-1)
 	  				t.getChild(lv, x)
   			}
@@ -292,6 +292,7 @@ trait NprrJoinImp extends Trie with Intersection {
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
 			// Don't forget to build the trie
 		  val result_set = builder.build_set(level, iterator_i)
+		  println(builder.next_set_to_build)
 		  // println(result_set getCardinality)
 
   		if (is_last_attr) 
@@ -300,9 +301,7 @@ trait NprrJoinImp extends Trie with Intersection {
 				unit()  // necessary???
 			}
   	  else {
-  	  	builder.next_set_to_build_is_lower_level(level)
   	  	result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
-  	  	builder.next_set_to_build_is_upper_level(level+1)
   	  	// don't forget to set up index
   	  }
   	}

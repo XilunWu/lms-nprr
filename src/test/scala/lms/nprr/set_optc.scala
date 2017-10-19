@@ -61,14 +61,14 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 
 		def bitset_foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
 			val values = NewArray[Int](set_cardinality)
-			/*
+/*
 			println(addr)
 			println(head)
 			println(set_type)
 			println(set_cardinality)
 			println(set_range)
 			println(set_min)
-			*/
+*/
 			val num = uncheckedPure[Int](
 				"decode ((uint64_t *)",
 				values,
@@ -88,7 +88,7 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			while (i < set_cardinality) {println(values(i)); i += 1}
 			*/
 			var i = 0
-			while (i < num && i < 10) { 
+			while (i < num) { 
 				/*
 				print("parent: = ")
 				println(values(i))
