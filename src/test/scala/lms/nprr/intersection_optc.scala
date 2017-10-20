@@ -73,7 +73,10 @@ trait NprrJoinImp extends Trie with Intersection {
 				if (lv == schema.length-1) {
 					count += 1l
 				} else {
-					iterator_i foreach { t => t.getChild(lv, tmp_store(i))}
+					iterator_i foreach { t => 
+						t.getChild(lv, tmp_store(i))
+						join_on_level(lv+1)
+					}
 				}
 				i += 1			
 			}
