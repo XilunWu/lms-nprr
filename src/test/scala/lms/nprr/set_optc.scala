@@ -50,7 +50,13 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			val index = x-set_min
 			return head + sizeof_bitset_header + index / 64
 		}
-
+		def getUintSet (dest: Rep[Array[Int]]): Rep[Unit] = {
+			/*
+				if (set_type == type_bitmap) 
+				TODO: make it hybrid
+			*/
+			
+		}
 		def foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
 			/*
 				if (set_type == type_bitmap) 
