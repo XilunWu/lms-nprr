@@ -75,8 +75,8 @@ trait NprrJoinImp extends Trie with Intersection {
 				} else {
 					iterator_i foreach { t => 
 						t.getChild(lv, tmp_store(i))
-						join_on_level(lv+1)
 					}
+					join_on_level(lv+1)
 				}
 				i += 1			
 			}
