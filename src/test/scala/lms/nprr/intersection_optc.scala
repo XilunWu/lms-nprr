@@ -43,6 +43,7 @@ trait NprrJoinImp extends Trie with Intersection {
   	var count = 0l
 		val result = new ArrayBuffer (1 << 28)
 		val tmp_store_length = 1 << 12
+		val tmp_store = schema.map{_ => NewArray[Int](tmp_store_length)}
 		// iterator(tid)(trie)
 		// just 1 thread
 		val iterator = tries map {t => 
@@ -58,7 +59,7 @@ trait NprrJoinImp extends Trie with Intersection {
 		println(count)
 
 		def join_on_level(lv: Int): Rep[Unit] = {
-			val tmp_store = NewArray[Int](tmp_store_length)
+			val tmp_store_lv = tmp_store(lv)
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(lv)))
 			val result_set = builder.build_set(lv, iterator_i)  // we decode it here. 
 																													// Use the decoded int to set iterator
@@ -67,18 +68,18 @@ trait NprrJoinImp extends Trie with Intersection {
 				println("tmp store is not large enough!")
 				// exit
 			}
-			result_set getUintSet tmp_store
+			result_set getUintSet tmp_store_lv
 			var i = 0 
 			while (i < len) {
 				if (lv == schema.length-1) {
 					count += 1l
 				} else {
 					iterator_i foreach { t => 
-						t.getChild(lv, tmp_store(i))
+						t.getChild(lv, tmp_store_lv(i))
 					}
 					join_on_level(lv+1)
 				}
-				i += 1			
+				i += 1
 			}
 		}
 		// return len of intersection set

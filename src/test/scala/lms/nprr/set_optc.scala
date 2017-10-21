@@ -55,7 +55,19 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 				if (set_type == type_bitmap) 
 				TODO: make it hybrid
 			*/
-			
+			val num = uncheckedPure[Int](
+				"decode ((uint64_t *)",
+				dest,
+				", (uint64_t *)",
+				addr,
+				", ",
+				head+sizeof_bitset_header,
+				", ",
+				set_range,
+				", ",
+				set_min,
+				")"
+			)
 		}
 		def foreach (f: Rep[Int=>Unit]): Rep[Unit] = {
 			/*
