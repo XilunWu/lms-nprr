@@ -75,7 +75,7 @@ trait NprrJoinImp extends Trie with Intersection {
 					count += 1l
 				} else {
 					( iterator_i.map{ t => t.getSchema indexOf schema(lv)}, 
-						iterator_x ).zipped.foreach { (lv, t) =>
+						iterator_i ).zipped.foreach { (lv, t) =>
 							t.getChild(lv, tmp_store_lv(i))
 					}
 					join_on_level(lv+1)
