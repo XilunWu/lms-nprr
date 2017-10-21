@@ -281,7 +281,7 @@ trait DslGenC extends CGenNumericOps
         Snippet(argv[1]);
         return 0;
       }
-      int string_toInt(const char * s)
+      inline int string_toInt(const char * s)
       {
         return atoi(s);
       }
@@ -297,7 +297,7 @@ trait DslGenC extends CGenNumericOps
 
       // bitset INTERSECT bitset -> bitset
       // HEAD: type | cardinality | range | min
-      uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
+      inline uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
           //we assume equal size and bitmaps all are already aligned here:                                                             
           uint64_t i = 0;
           uint64_t j = 0;
@@ -355,7 +355,7 @@ trait DslGenC extends CGenNumericOps
           return count;
       }
 
-      uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t head, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
+      inline uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t head, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
       bitmap_size, uint64_t min) {
           uint64_t **bitmap_start = (uint64_t**)malloc(num_of_maps * sizeof(uint64_t *));
 
@@ -365,7 +365,7 @@ trait DslGenC extends CGenNumericOps
           return simd_bitmap_intersection_helper(&output[head], bitmap_start, num_of_maps, bitmap_size, min);
       }
 
-      uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
+      inline uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
           // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
@@ -384,7 +384,7 @@ trait DslGenC extends CGenNumericOps
           // decoding_time += (double)(decoding_time_end - decoding_time_begin) / CLOCKS_PER_SEC;
           return count;
       }
-      uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t start, uint64_t len, uint64_t min) {
+      inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t start, uint64_t len, uint64_t min) {
         return decode2(vec, &bitmap[start], len, min);
       }
       """)

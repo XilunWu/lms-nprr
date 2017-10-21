@@ -56,4 +56,14 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
    4. We can measure the skew in result trie. Maybe by counting skewed sets? Investigate the policy EmptyHeaded takes.
    5. Can we modify EmptyHeaded code to make everything not inlined and see the performance?
    6. Implement multithreading version after all those. Need understand how EmptyHeaded store the ParTrie and build the ParTrie
-   
+
+    Recursion version nprr:
+        #COUNT
+	   	9672060
+	   	Query execution time: 0.491201
+
+    Lambda version nprr:
+	    #COUNT
+   	  	count = 9672060
+	  	Query execution time: 0.481780
+		
