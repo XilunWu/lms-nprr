@@ -66,4 +66,25 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
 	    #COUNT
    	  	count = 9672060
 	  	Query execution time: 0.481780
-		
+
+    Recursion version nprr with all function inlined:
+	    #COUNT
+		9672060
+		Query execution time: 0.522330
+
+
+    Recursion version nprr:
+        #COUNT
+	   	9672060
+	   	Query execution time: 0.491201
+
+    Lambda version nprr:
+	    #COUNT
+   	  	count = 9672060
+	  	Query execution time: 0.481780
+
+    Recursion version nprr with all function inlined:
+	    #COUNT
+		9672060
+		Query execution time: 0.522330
+
