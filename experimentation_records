@@ -57,6 +57,7 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
    5. Can we modify EmptyHeaded code to make everything not inlined and see the performance?
    6. Implement multithreading version after all those. Need understand how EmptyHeaded store the ParTrie and build the ParTrie
 
+======= Build the result trie: 
     Recursion version nprr:
         #COUNT
 	   	9672060
@@ -88,3 +89,12 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
 		9672060
 		Query execution time: 0.522330
 
+======= Do NOT build the result trie:
+    Recursion version nprr with all function inlined:
+        #COUNT
+		9672060
+		Query execution time: 0.042487
+
+
+
+======= Do NOT Build the result trie: (gplus):

@@ -477,7 +477,8 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       data(set_head+loc_cardinality) = cardinality
       val result_set = new Set(data, set_head)
       // update next_set_to_build
-      next_set_to_build = next_set_to_build + result_set.getSize
+      // we don't build result trie because of the inefficient data structure. 
+      // next_set_to_build = next_set_to_build + result_set.getSize
       return result_set
     }
   }
