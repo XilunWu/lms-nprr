@@ -131,6 +131,8 @@ trait NprrJoinImp extends Trie with Intersection {
 	def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
 		var count = 0l
 		val result = new ArrayBuffer (1 << 18)
+		val tmp_store_length = 1 << 18
+		val tmp_store = schema.map{_ => NewArray[Int](tmp_store_length)}
 		// iterator(tid)(trie)
 		// just 1 thread
 		val iterator = tries map {t => 
@@ -152,23 +154,18 @@ trait NprrJoinImp extends Trie with Intersection {
 		// Note: foreach can be done differently for uint/bitset
 		def nprr_subtrie (level: Int): Rep[Int=>Unit] = fun { x: Rep[Int] => // x is the parent of set on level
 			val is_last_attr = (level == schema.length-1)
+			val tmp_store_lv = tmp_store(level)
 			// find children sets on level of value x.
 			// intersect those sets.
-
-			// open on level-1 for x
-			if (level > 0) {
-				val iterator_x = iterator.filter( t => t.getSchema.contains(schema(level-1)))
-				(iterator_x.map{ t => 
-					t.getSchema indexOf schema(level-1)}, 
-					iterator_x).zipped.foreach { (lv, t) =>
-					if (lv != t.getSchema.length-1)
-						t.getChild(lv, x)
-				}
-			}
-
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(level)))
 			// Don't forget to build the trie
 			val result_set = builder.build_set(level, iterator_i)
+			val len = result_set.getCardinality
+			if (len >= tmp_store_length) {
+				println("tmp store is not large enough!")
+				// exit
+			}
+			result_set getUintSet tmp_store_lv
 			// println(builder.next_set_to_build)
 			// println(result_set getCardinality)
 
@@ -178,7 +175,15 @@ trait NprrJoinImp extends Trie with Intersection {
 				unit()  // necessary???
 			}
 			else {
-				result_set foreach nprr_subtrie(level+1) // foreach will setup iterator
+				var i = 0 
+				while (i < len) {
+					( iterator_i.map{ t => t.getSchema indexOf schema(level)}, 
+						iterator_i ).zipped.foreach { (lv, t) =>
+							t.getChild(lv, tmp_store_lv(i))
+					}
+					nprr_subtrie(level+1)(tmp_store_lv(i))
+					i += 1
+				}
 				// don't forget to set up index
 			}
 		}
