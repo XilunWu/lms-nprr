@@ -108,3 +108,13 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
 		1656074926
 		Query execution time: 37.465318
 
+    Lambda version nprr with all function inlined:
+	    #COUNT
+		count = 1656074926
+		Query execution time: 35.372754
+
+    Lambda version nprr with all function not inlined:
+	    #COUNT
+		count = 1656074926
+		Query execution time: 36.874488
+		
