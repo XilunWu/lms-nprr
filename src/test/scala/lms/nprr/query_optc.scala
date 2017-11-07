@@ -239,8 +239,8 @@ Query Interpretation = Compilation
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
-      // nprr_iterative (tries, outSchema)
-      nprr_lambda (tries, outSchema)
+      nprr_iterative (tries, outSchema)
+      // nprr_lambda (tries, outSchema)
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // unchecked[Unit]("printf(\"Union time: %f\\n\", union_time)")
       // unchecked[Unit]("printf(\"Decode time: %f\\n\", decoding_time)")

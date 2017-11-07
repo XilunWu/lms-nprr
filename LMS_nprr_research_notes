@@ -8,3 +8,9 @@ TODO:
 	1. try inline / not inline intersection in EmptyHeaded
 	2. fix TrieBuilder
 	3. Multithreading: build trie in each thread and merge them back into one trie
+
+2017/11/07
+Thoughts:
+	1. LMS-verify + query compiler =  High performance + high-level guarantees. How to verify it?
+	2. Keeping experimenting with LMS-nprr. More joins, more layouts...
+	
