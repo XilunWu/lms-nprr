@@ -138,9 +138,9 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
         }
         else {
           val index = indexArray(lv-1)
-          var parent_set = new Set(mem, first_set_on_level(lv-1))
+          var parent_set = first_set_on_level(lv-1)
           var low_bound = 0
-          var up_bound = parent_set get_cardinality
+          var up_bound = new Set(mem, parent_set) get_cardinality
           var i = 0
           while (i < lenArray(lv-1)) {  // iterate through all elems on upper level, build their child sets
             val begin = index(i)
@@ -148,19 +148,19 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
             // make index in parent set
             // if the index shall be in sibling of parent set, update it to its sibling.
             if (i >= up_bound) {
-              parent_set = parent_set get_sibling_set
+              parent_set = (new Set(mem, parent_set) get_sibling_set)
               low_bound = up_bound
-              up_bound += (parent_set get_cardinality)
+              up_bound += (new Set(mem, parent_set) get_cardinality)
             }
-            parent_set set_index (i-low_bound, start+offset) // Check out how EH stores index for bitset. Do we need data to index?
+            new Set(mem, parent_set) set_index (i-low_bound, start+offset) // Check out how EH stores index for bitset. Do we need data to index?
             val size_of_set = buildSet(mem, start+offset, value, begin, end)
-            val size_of_index = lv != schema.length-1 ? allocate_index (value, begin, end) : 0 // no index for last attribute
+            val size_of_index = if (lv != schema.length-1) allocate_index (value, begin, end) else 0 // no index for last attribute
             offset += (size_of_set+size_of_index)
             i += 1
           }
         }
       }
-      return start+offset
+      start+offset
     }
     def buildSet(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
       val min = value(begin)
@@ -181,7 +181,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       val set_type = set_const.type_uintvec
       mem(start+0) = card
       mem(start+1) = range
-      mem(start+2) = set_const.bytes_per_int * card
+      mem(start+2) = set_const.bytes_per_int * card // in bytes
       mem(start+3) = set_type
 
       // Int vector
@@ -189,10 +189,11 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       array_copy(mem, start+offset, value, begin, card * bytes_per_int)
 
       // Index is allocated outside
+      4+card
     }
     def buildBitSet(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
       // Structure: Head - Bitset - Index (How to store index? if the bitset is relatively sparse?)
-
+      0
     }
     def allocate_index (value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
       // allocate index based on selectivity
@@ -370,7 +371,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       index >= card
     }
   }
-*/
+
   val size_set_header = 1 // type of set 
   class TrieBuilder() {
     def build_set (data: NewArray[Int], head: Rep[Int], sets: List[Set]) {
@@ -616,4 +617,5 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       return result_set
     }
   }
+  */
 }

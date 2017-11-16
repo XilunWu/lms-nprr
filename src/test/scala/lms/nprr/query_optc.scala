@@ -243,9 +243,6 @@ Query Interpretation = Compilation
 
       print("mem usage for trie: ")
       println(start)
-      var i = 0
-      while (i < start) {print(mem(i)); print(" "); i += 1}
-      println("")
       
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")

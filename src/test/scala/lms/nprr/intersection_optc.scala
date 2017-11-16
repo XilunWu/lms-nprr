@@ -3,6 +3,7 @@ package scala.lms.nprr
 import scala.lms.common._
 
 trait Intersection extends Dsl with UncheckedOps {
+	/*
 	def simd_bitmap_intersection(res: Rep[Array[Int]], set_head: Rep[Int], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
 		val length = end(0)-start(0)
 		/*
@@ -28,6 +29,7 @@ trait Intersection extends Dsl with UncheckedOps {
         )
 		num_of_ints
 	}
+	*/
 }
 
 trait ParIntersection extends Dsl with StagedQueryProcessor with UncheckedOps{
@@ -38,7 +40,7 @@ trait NprrJoinImp extends Trie with Intersection {
   // Option: Inline / not Inline
   // 1. Have an expanded if-then-else branch for each level
   // 2. Not expand at all
-  
+  /*
   def nprr_iterative (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
   	var count = 0l
 		val result = new ArrayBuffer (1 << 18)
@@ -188,7 +190,7 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 		}
 	}
-
+	*/
 
   // search functions for UInteTrie
   /*

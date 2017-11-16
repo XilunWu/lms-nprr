@@ -21,13 +21,11 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
     val bytes_per_int = 8
     val bits_per_int = 8 * bytes_per_int
 	}
-	class Set(mem: Rep[Array[Int]], head: Rep[Int]) {
-		def get_cardinality = {
-			return mem(head)
-		}
+	case class Set (mem: Rep[Array[Int]], head: Rep[Int]) {
+		def get_cardinality = mem(head)
 		def get_sibling_set = { // calculate set size and index size
 			val size = 4 + 2 * mem(head)
-			return head + size
+			head + size
 		} 
 		def set_index (index_in_set: Rep[Int], index: Rep[Int]) = {
 			mem(head+4+mem(head)+index_in_set) = index
