@@ -224,8 +224,11 @@ Query Interpretation = Compilation
         }
       }
     case NprrJoin(parents, outSchema, num_threads) =>
+      // allocate mem buffer = 32MB
+      val mem = NewArray[Int](1 << 22)
+      var start = 0
       val tries = parents.map { p => 
-        val loader = new BitTrieLoader(resultSchema(p))
+        val loader = new TrieLoader(resultSchema(p))
         execOp(p) { rec => loader += 
           rec.fields.map {
             case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
@@ -233,13 +236,21 @@ Query Interpretation = Compilation
           }
         }
         //bintrie.buildIntTrie 
-        loader.buildBitTrie
+        val trie = new Trie(mem, start, resultSchema(p))
+        start = loader.buildTrie(mem, start)  // update the start address for next trie
+        trie
       }
+
+      print("mem usage for trie: ")
+      println(start)
+      var i = 0
+      while (i < start) {print(mem(i)); print(" "); i += 1}
+      println("")
       
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
-      nprr_iterative (tries, outSchema)
+      // nprr_iterative (tries, outSchema)
       // nprr_lambda (tries, outSchema)
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // unchecked[Unit]("printf(\"Union time: %f\\n\", union_time)")

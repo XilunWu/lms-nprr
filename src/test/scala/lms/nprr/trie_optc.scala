@@ -91,6 +91,121 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     	}
     }
   }
+
+  class Trie (data: Rep[Array[Int]], head: Rep[Int], schema: Schema){
+    
+  } 
+  class TrieLoader(schema: Schema) {
+    import trie_const._
+    // change it back to Vector[Rep[Array[Int]]]
+    val indexArray = new Matrix (schema.length, initRawDataLen)
+    val valueArray = new Matrix (schema.length, initRawDataLen)
+    val lenArray = NewArray[Int](schema.length)
+
+    def +=(fields: Vector[Rep[Int]]):Rep[Unit] = {
+      var diff = false
+      fields foreach { x =>
+        val i = fields indexOf x
+        if (lenArray(i) == 0) diff = true
+        else 
+          if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
+        if (diff) {
+          valueArray update (i, lenArray(i), x)
+          if (i != schema.length - 1) {
+            indexArray update (i, lenArray(i), lenArray(i+1))
+          }
+          lenArray(i) = lenArray(i) + 1
+        }
+      }
+    }
+
+    def buildTrie(mem: Rep[Array[Int]], start: Rep[Int]) = {
+      //make sure that indexArray(i)(lenArray(i)) = lenArray(i+1)
+      0 until (schema.length - 1) foreach { i =>
+        indexArray update (i, lenArray(i), lenArray(i+1))
+      }
+      val first_set_on_level = NewArray[Int](schema.length)
+      var offset = 0
+      (0 until schema.length) foreach { lv => 
+        val value = valueArray(lv)
+        first_set_on_level(lv) = start+offset
+        if (lv == 0) {
+          val begin = 0
+          val end = lenArray(0)
+          val size_of_set = buildSet(mem, start+offset, value, begin, end)
+          val size_of_index = allocate_index (value, begin, end)
+          offset += (size_of_set+size_of_index)
+        }
+        else {
+          val index = indexArray(lv-1)
+          var parent_set = new Set(mem, first_set_on_level(lv-1))
+          var low_bound = 0
+          var up_bound = parent_set get_cardinality
+          var i = 0
+          while (i < lenArray(lv-1)) {  // iterate through all elems on upper level, build their child sets
+            val begin = index(i)
+            val end = index(i+1)
+            // make index in parent set
+            // if the index shall be in sibling of parent set, update it to its sibling.
+            if (i >= up_bound) {
+              parent_set = parent_set get_sibling_set
+              low_bound = up_bound
+              up_bound += (parent_set get_cardinality)
+            }
+            parent_set set_index (i-low_bound, start+offset) // Check out how EH stores index for bitset. Do we need data to index?
+            val size_of_set = buildSet(mem, start+offset, value, begin, end)
+            val size_of_index = lv != schema.length-1 ? allocate_index (value, begin, end) : 0 // no index for last attribute
+            offset += (size_of_set+size_of_index)
+            i += 1
+          }
+        }
+      }
+      return start+offset
+    }
+    def buildSet(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      val min = value(begin)
+      val range = value(end-1) - min
+      val cardinality = end - begin
+      // return the size of set
+      /*if (range / cardinality > 32) return buildIntSet(mem, start, value, begin, end)
+      else return buildBitSet(mem, start, value, begin, end)*/
+      return buildIntSet(mem, start, value, begin, end)
+    }
+    def buildIntSet(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      // Structure: Head - Int vector - Index vector
+      // Head: card - range - size_in_bytes - type
+      val min = value(begin)
+      val max = value(end-1)
+      val card = end-begin
+      val range = max - min
+      val set_type = set_const.type_uintvec
+      mem(start+0) = card
+      mem(start+1) = range
+      mem(start+2) = set_const.bytes_per_int * card
+      mem(start+3) = set_type
+
+      // Int vector
+      var offset = 4
+      array_copy(mem, start+offset, value, begin, card * bytes_per_int)
+
+      // Index is allocated outside
+    }
+    def buildBitSet(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      // Structure: Head - Bitset - Index (How to store index? if the bitset is relatively sparse?)
+
+    }
+    def allocate_index (value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      // allocate index based on selectivity
+      // for uint vector
+      return end-begin
+    }
+    def array_copy(dest: Rep[Array[Int]], dest_start: Rep[Int], src: Rep[Array[Int]], src_start: Rep[Int], n: Rep[Int]) = {
+      // memcpy((void *)(dest_start+dest_start), (void *)(src+src_start), n)
+      unchecked[Unit]("memcpy((void *)(", dest, "+", dest_start, "),",
+        "(void *)(", src, "+", src_start, "),",
+        n, ");")
+    }
+  }
 /*
   class IntTrie (val schema: Schema) {
     import trie_const._
@@ -256,6 +371,25 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 */
+  val size_set_header = 1 // type of set 
+  class TrieBuilder() {
+    def build_set (data: NewArray[Int], head: Rep[Int], sets: List[Set]) {
+      var offset = 0
+      // allocate header. We write it back later.
+      offset += size_set_header
+
+      // estimate the size of result set and find the smallest set. 
+      // get set header of the first set
+      val min_set = sets(0)                   // init set be the first set
+      var min_set = sets(0) get_cardinality   // the size of the smallest set
+      var min_index = 0                       // the index of the smallest set
+      var alloc_size = sets(0) get_num_of_bytes   // estimate of alloc_size
+      var result_set_type = sets(0) get_type  // the type of the result set.
+      
+
+    }
+  }
+
   class BitTrieLoader (val schema: Schema) {
     import trie_const._
     //index(i) is the start of child of value(i)
