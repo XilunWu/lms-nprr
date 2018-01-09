@@ -1,7 +1,10 @@
 package scala.lms.nprr
 
 import scala.lms.common._
+object intersection {
 
+val code = 
+"""
 trait Intersection extends Dsl with UncheckedOps {
 	/*
 	def simd_bitmap_intersection(res: Rep[Array[Int]], set_head: Rep[Int], n_rel: Rep[Int], arr: Rep[Array[Array[Int]]], start: Rep[Array[Int]], end: Rep[Array[Int]], min: Rep[Int]) = {
@@ -40,37 +43,55 @@ trait NprrJoinImp extends Trie with Intersection {
   // Option: Inline / not Inline
   // 1. Have an expanded if-then-else branch for each level
   // 2. Not expand at all
-  /*
-  def nprr_iterative (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
-  	var count = 0l
+  def tabular_nprr_join (tries: List[Trie], schema: Schema, mem: Rep[Array[Int]], start: Rep[Int]): Rep[Unit] = {
+  	var offset = 0  // it will become the size of the result trie
+  	/*
 		val result = new ArrayBuffer (1 << 18)
 		val tmp_store_length = 1 << 18
 		val tmp_store = schema.map{_ => NewArray[Int](tmp_store_length)}
+		*/
 		// iterator(tid)(trie)
 		// just 1 thread
+		val builder = new TabularTrieBuilder(schema, mem, start)  // TrieBuilder and TrieIterator need be case class
 		val iterator = tries map {t => 
-			new BitTrieIterator(t)}
-		val builder = new BitTrieBuilder(new BitTrie(result, schema))
-		// Trie is now stored in prefix order instead
-		var i = 0
-		val data = tries(0).getData
+			new TabularTrieIterator(t)}
+		// iterators are put at head
+  	val result = join_on_attribute(schema(0))  // return address of the result trie
+  	val trie = new Trie (schema, mem, result)  // = builder.getTrie
+  	trie getCardinality
+		// println(count)
+		// join on attribute. Set the iterator to corresponding child of prefix values
+		def join_on_attribute(attr: String): Rep[Unit] = {
+			val iterator_i = iterator.filter( t => t.getSchema.contains(attr))
+			val result_set = builder.build_set(attr, iterator_i)  // we decode it here. 
+																													// Use the decoded int to set iterator
+			if (attr != schema.last) {
+				val next_attr = schema((schema indexOf attr) + 1) 
+				// TODO: rewrite this foreach. 1. set up iterator; 2. set up iterator when finish looping
+				result_set foreach_build_set(next_attr)   // Should return address of the first set on level
+			}
+		}
+	}
 
-  	var level = 0
-  	join_on_level(0)
+	/*
+  def nprr_iterative (tries: List[Trie], schema: Schema, mem: Rep[Array[Int]], start: Rep[Int]): Rep[Unit] = {
+  	var offset = 0  // it will become the size of the result trie
+		// iterator(tid)(trie)
+		// just 1 thread
+		val builder = new ColumnarTrieBuilder(schema, mem, start)  // TrieBuilder and TrieIterator need be case class
+		val iterator = tries map {t => 
+			new ColumnarTrieIterator(t)}
+		// iterators are put at head
+  	val result = join_on_level(0)  // return address of the result trie
 
-		println(count)
+		// println(count)
 
 		def join_on_level(lv: Int): Rep[Unit] = {
-			val tmp_store_lv = tmp_store(lv)
 			val iterator_i = iterator.filter( t => t.getSchema.contains(schema(lv)))
 			val result_set = builder.build_set(lv, iterator_i)  // we decode it here. 
 																													// Use the decoded int to set iterator
-			val len = result_set.getCardinality
-			if (len >= tmp_store_length) {
-				println("tmp store is not large enough!")
-				// exit
-			}
-			result_set getUintSet tmp_store_lv
+			result_set foreach_build_set(lv+1)   // Should return address of the first set on level
+
 			var i = 0 
 			while (i < len) {
 				if (lv == schema.length-1) {
@@ -86,7 +107,7 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 		}
 		// return len of intersection set
-		/*
+		
 		def leapfrog_on_level(level: Int, 
 			arr: Rep[Array[Array[Int]]], 
 			head: Rep[Array[Int]]) = {
@@ -127,7 +148,6 @@ trait NprrJoinImp extends Trie with Intersection {
 			}
 			len
 		}
-		*/
 	}
 
 	def nprr_lambda (tries: List[BitTrie], schema: Schema): Rep[Unit] = {
@@ -230,4 +250,6 @@ trait NprrJoinImp extends Trie with Intersection {
     (start + i) - (head + trie_const.sizeof_uint_set_header)
   }
   */
+}
+"""
 }

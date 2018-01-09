@@ -4,7 +4,7 @@ import scala.lms.common._
 
 object query_optc {
 trait QueryCompiler extends Dsl with StagedQueryProcessor
-with ScannerLowerBase with NprrJoinImp {
+with ScannerLowerBase with Trie {
   override def version = "query_optc"
 /**
 Input File Tokenizer
@@ -224,34 +224,38 @@ Query Interpretation = Compilation
         }
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      // allocate mem buffer = 32MB
-      val mem = NewArray[Int](1 << 22)
+      // allocate mem buffer = 4MB
+      val mem = new SimpleMemPool (1 << 22)
+
       var start = 0
       val tries = parents.map { p => 
-        val loader = new TrieLoader(resultSchema(p))
-        execOp(p) { rec => loader += 
+        val trie = new SimpleTrie(mem, start, resultSchema(p))
+        execOp(p) { rec => trie += 
           rec.fields.map {
             case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
             case RString (str: Rep[String], len: Rep[Int]) => str.toInt
           }
         }
         //bintrie.buildIntTrie 
-        val trie = new Trie(mem, start, resultSchema(p))
-        start = loader.buildTrie(mem, start)  // update the start address for next trie
+        start += trie.buildTrie// update the start address for next trie
         trie
       }
 
       print("mem usage for trie: ")
       println(start)
       
+      // val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
-      // nprr_iterative (tries, outSchema)
-      // nprr_lambda (tries, outSchema)
+
+      // Build the result trie
+      // val tb_size = tb.build (mem, start)
+
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
-      // unchecked[Unit]("printf(\"Union time: %f\\n\", union_time)")
-      // unchecked[Unit]("printf(\"Decode time: %f\\n\", decoding_time)")
+      // println(tb getCardinality)
+      // print("Mem usage of tb = "); println(tb_size)
+      // start += tb_size
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)
@@ -409,5 +413,13 @@ Data Structure Implementations
       }
     }
   }
+
+  /**
+    *  The implementation of Trie, Set, MemPool begins here:
+    *  Or put in Trait Trie Set MemPool?
+    */
+  // abstract class Trie {}
+
+
 
 }}

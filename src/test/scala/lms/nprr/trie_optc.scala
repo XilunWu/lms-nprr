@@ -1,7 +1,7 @@
 package scala.lms.nprr
 
 import scala.lms.common._
-
+/*
 trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with UncheckedOps {
 
   object trie_const {
@@ -92,10 +92,99 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
     }
   }
 
-  class Trie (data: Rep[Array[Int]], head: Rep[Int], schema: Schema){
+  class TabularTrie (data: Rep[Array[Int]], head: Rep[Int], schema: Schema){
     
   } 
-  class TrieLoader(schema: Schema) {
+  class ColumnarTrie (data: Rep[Array[Int]], head: Rep[Int], schema: Schema){
+    
+  }
+  class TabularTrieLoader(schema: Schema) {
+    import trie_const._
+    // change it back to Vector[Rep[Array[Int]]]
+    val indexArray = new Matrix (schema.length, initRawDataLen)
+    val valueArray = new Matrix (schema.length, initRawDataLen)
+    val lenArray = NewArray[Int](schema.length)
+    var offset = 0
+
+    def +=(fields: Vector[Rep[Int]]):Rep[Unit] = {
+      var diff = false
+      fields foreach { x =>
+        val i = fields indexOf x
+        if (lenArray(i) == 0) diff = true
+        else 
+          if (!diff) diff = !(valueArray(i, lenArray(i)-1) == x)
+        if (diff) {
+          valueArray update (i, lenArray(i), x)
+          if (i != schema.length - 1) {
+            indexArray update (i, lenArray(i), lenArray(i+1))
+          }
+          lenArray(i) = lenArray(i) + 1
+        }
+      }
+    }
+    def buildTrie(mem: Rep[Array[Int]], start: Rep[Int]) = {
+      offset = 0
+      //make sure that indexArray(i)(lenArray(i)) = lenArray(i+1)
+      0 until (schema.length - 1) foreach { i =>
+        indexArray update (i, lenArray(i), lenArray(i+1))
+      }
+      build_trie(0, mem, start, 0, lenArray(0)) 
+      offset  // return the size of trie
+    }
+
+    def build_trie(level: Int, mem: Rep[Array[Int]], start: Rep[Int], begin: Rep[Int], end: Rep[Int]): Rep[Unit] = {      
+      val set_head = start+offset
+      val set_size = build_set(mem, start+offset, valueArray(level), begin, end)  
+      offset += set_size
+
+      if (level != schema.length - 1) {
+        // Build subtrie for each element in result set if its not the last attribute.
+        var i = start
+        while ( i < end ) {
+          val begin = indexArray(level, i)
+          val end = indexArray(level, i+1)
+          // TODO: update offset in build_set
+          val set = new Set(mem, set_head)
+          set set_index (i - start, valueArray(level, i), start+offset)  // index_in_set, value, index_value
+          build_trie(mem, start+offset, valueArray(level+1), begin, end)
+          i += 1
+        }
+      }
+    }
+
+    def build_set(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      val min = value(begin)
+      val range = value(end-1) - min
+      val cardinality = end - begin
+      val index_size = set_index_size(range, cardinality)
+      // We build Int set only, for test
+      build_Int_set(level, mem, start) + index_size
+    }
+
+    def build_Int_set(mem: Rep[Array[Int]], start: Rep[Int], value: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
+      // TODO: build set like we did 
+      // Structure: Head - Int vector - Index vector
+      // Head: card - range - size_in_bytes - type
+      val min = value(begin)
+      val max = value(end-1)
+      val card = end-begin
+      val range = max - min
+      val set_type = set_const.type_uintvec
+      mem(start+0) = card
+      mem(start+1) = range
+      mem(start+2) = set_const.bytes_per_int * card // in bytes
+      mem(start+3) = set_type
+
+      // Int vector
+      var offset = 4
+      array_copy(mem, start+offset, value, begin, card * bytes_per_int)
+
+      // Index is allocated outside
+      4+card
+    }
+  }
+  // ColumnarTrieLoader: Int set is done. Bit set/hybrid need be done.
+  class ColumnarTrieLoader(schema: Schema) {
     import trie_const._
     // change it back to Vector[Rep[Array[Int]]]
     val indexArray = new Matrix (schema.length, initRawDataLen)
@@ -207,7 +296,7 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
         n, ");")
     }
   }
-/*
+
   class IntTrie (val schema: Schema) {
     import trie_const._
     //index(i) is the start of child of value(i)
@@ -617,5 +706,6 @@ trait Trie extends Set with Intersection with Dsl with StagedQueryProcessor with
       return result_set
     }
   }
-  */
+  
 }
+*/

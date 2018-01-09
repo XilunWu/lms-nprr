@@ -1,7 +1,7 @@
 package scala.lms.nprr
 
 import scala.lms.common._
-
+/*
 trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 	object set_const {
     val loc_type = 0
@@ -27,11 +27,13 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			val size = 4 + 2 * mem(head)
 			head + size
 		} 
-		def set_index (index_in_set: Rep[Int], index: Rep[Int]) = {
+		def set_index (index_in_set: Rep[Int], value: Rep[Int], index: Rep[Int]) = {
+			// This code is only for Int Set. 
 			mem(head+4+mem(head)+index_in_set) = index
+			// TODO: bitset
 		}
 	}
-	/*
+	
 	case class Set (val addr: Rep[Array[Int]], val head: Rep[Int]) {
 		import set_const._
 
@@ -119,5 +121,6 @@ trait Set extends Dsl with StagedQueryProcessor with UncheckedOps {
 			}
 		}
 	}
-	*/
+	
 }
+*/
