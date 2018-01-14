@@ -203,7 +203,7 @@ trait DslGenC extends CGenNumericOps
     case a@ArrayNew(n) =>
       val arrType = remap(a.m)
       stream.println(arrType + "* " + quote(sym) + " = " + getMemoryAllocString(quote(n), arrType))
-      //initialize: memset ( void * ptr, int value, size_t num );
+      // initialize: memset ( void * ptr, int value, size_t num );
       stream.println("memset(" + quote(sym) + ", 0, " + quote(n) + " * sizeof(" + arrType + "));")
     case ArrayApply(x,n) => emitValDef(sym, quote(x) + "[" + quote(n) + "]")
     case ArrayUpdate(x,n,y) => stream.println(quote(x) + "[" + quote(n) + "] = " + quote(y) + ";")
@@ -429,8 +429,8 @@ abstract class DslDriverC[A:Manifest,B:Manifest] extends DslSnippet[A,B] with Ds
     //TODO: use precompile
     (new java.io.File("/tmp/snippet")).delete
     import scala.sys.process._
-    (s"g++  -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
+    // (s"g++  -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native /tmp/snippet.c -o /tmp/snippet":ProcessBuilder).lines.foreach(Console.println _)
     // Just compile without running on my laptop
-    (s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
+    // (s"/tmp/snippet $a":ProcessBuilder).lines.foreach(Console.println _)
   }
 }

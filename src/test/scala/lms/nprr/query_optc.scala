@@ -224,8 +224,9 @@ Query Interpretation = Compilation
         }
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      // allocate mem buffer = 4MB
-      val mem = new SimpleMemPool (1 << 22)
+      // allocate mem buffer = 64MB
+      // for fb test case. mem usage for trie = 5283759 * sizeof(Int) = 42MB
+      val mem = new SimpleMemPool (1 << 23)
 
       var start = 0
       val tries = parents.map { p => 
@@ -237,12 +238,14 @@ Query Interpretation = Compilation
           }
         }
         //bintrie.buildIntTrie 
-        start += trie.buildTrie// update the start address for next trie
+        start += trie.buildTrie  // update the start address for next trie
         trie
       }
 
       print("mem usage for trie: ")
       println(start)
+
+      // tries(0) printTrie
       
       // val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
       //Measure data loading and preprocessing time

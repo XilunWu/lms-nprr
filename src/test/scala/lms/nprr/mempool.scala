@@ -2,7 +2,7 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait MemPool {
+trait MemPool extends UncheckedOps {
 	this: Dsl =>
 	abstract class MemPool {
 		val mem: Rep[Array[Int]]  // a better definition is Rep[Array[Byte]]
@@ -16,7 +16,9 @@ trait MemPool {
 	}
 
 	class SimpleMemPool (val size: Int) extends MemPool {
+		// remember to initialize it to 0
 		val mem = NewArray[Int](size)
+		// uncheckedPure[Unit]("memset(" + mem + ", 0, " + size + " * sizeof(uint64_t));")
 	}
 
 	abstract class ParMemPool extends MemPool {
