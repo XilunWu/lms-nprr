@@ -22,7 +22,7 @@ object set_const {
 	val BITS_PER_INT = 64
 	val BITS_PER_INT_SHIFT = 6
 }
-// Index is offset rather than absolute addr
+// Index is the absolute addr of child set in memory pool
 
 trait Set extends UncheckedOps {
 	this: Dsl =>
@@ -111,16 +111,26 @@ trait Set extends UncheckedOps {
 		def refineIndex (index: Rep[Int], value: Rep[Int], c_addr: Rep[Int]) = {
 			mem(data+loc_set_type) match {
 				case type_uint_set => 
-					val start = mem(data+loc_set_body_size) + size_set_head
-					mem(data+start+index) = c_addr
+					refineIndexByIndex (index, c_addr)
 				case type_bit_set =>
-					val min = mem(data+loc_set_min)
-					val start = mem(data+loc_set_body_size) + size_set_head
-					mem(data+start+value-min) = c_addr
+					refineIndexByValue (value, c_addr)
 				case _ => 
 			}
 		}
+		def refineIndexByIndex (index: Rep[Int], c_addr: Rep[Int]) = {
+			val start = mem(data+loc_set_body_size) + size_set_head
+			mem(data+start+index) = c_addr
+		}
+		def refineIndexByValue (value: Rep[Int], c_addr: Rep[Int]) = {
+			val min = mem(data+loc_set_min)
+			val start = mem(data+loc_set_body_size) + size_set_head
+			mem(data+start+value-min) = c_addr
+		}
+		def build (s1: BaseSet) = {}
+		def build (s1: BaseSet, s2: BaseSet) = {}
+		def build (s: List[BaseSet]) = {
 
+		}
 	}
 
 	abstract class Set {
@@ -196,6 +206,12 @@ trait Set extends UncheckedOps {
 		m: Rep[Array[Int]], 
 		d: Rep[Int]) extends BaseSet (m, d){
 
+		def getKeyByIndex(index: Rep[Int]): Rep[Int] = 
+			mem(data+size_set_head+index)
+		def getChildByIndex(index: Rep[Int]): Rep[Int] = {
+			val start = data+size_set_head+mem(data+loc_set_body_size)
+			mem(start+index)
+		}
 		override def getChild(key: Rep[Int]): Rep[Int] = {
 			val index = getIndexByKey (key)
 			val start = data+size_set_head+mem(data+loc_set_body_size)
@@ -247,6 +263,13 @@ trait Set extends UncheckedOps {
 			var i = 0
 			while ( i < getCardinality ) {
 				f (mem(data+size_set_head+i))
+				i += 1
+			}
+		}
+		def foreach_index (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
+			var i = 0
+			while ( i < getCardinality ) {
+				f (i)
 				i += 1
 			}
 		}

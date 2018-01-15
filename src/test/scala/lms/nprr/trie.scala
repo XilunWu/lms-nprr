@@ -67,7 +67,7 @@ trait Trie extends MemPool with Set {
 						val c_begin: Rep[Int] = index_arr(begin+index)  // specify the type of "recursive value"
 						val c_end = index_arr(begin+index+1)
 						// print("build set, offset = "); println(offset)
-						sb refineIndex (index, arr(begin+index), offset)
+						sb refineIndex (index, arr(begin+index), data+offset)
 						buildSubTrie(lv+1, c_begin, c_end)
 						index += 1
 					}
@@ -75,7 +75,7 @@ trait Trie extends MemPool with Set {
 			}
 
 			buildSubTrie (0, 0, tmp_len(0))
-			offset
+			offset  // mem usage
 		}
 
 		def printTrie = {
@@ -100,14 +100,14 @@ trait Trie extends MemPool with Set {
 						val concrete_set = new UIntSet (mem.mem, head)
 						concrete_set foreach { x =>
 							val c_set = concrete_set getChild(x)
-							printSubTrie (data+c_set, lv+1)
+							printSubTrie (c_set, lv+1)
 						}
 					}
 					else if (typ == set_const.type_bit_set) {
 						val concrete_set = new BitSet (mem.mem, head)
 						concrete_set foreach { x =>
 							val c_set = concrete_set getChild(x)
-							printSubTrie (data+c_set, lv+1)
+							printSubTrie (c_set, lv+1)
 						}
 					}
 					else {}
@@ -169,4 +169,65 @@ trait Trie extends MemPool with Set {
 
 	trait ParTrieIterator extends TrieIterator {}
 	*/
+
+	abstract class TrieBuilder {
+		val tries: List[Trie]
+		val schemas: List[Vector[String]]
+		val resultSchema: Vector[String]
+
+		def build (mem: Rep[Array[Int]], start: Rep[Int])
+	}
+	class SimpleTrieBuilder (
+		val tries: List[Trie],
+		val schemas: List[Vector[String]],
+		val resultSchema: Vector[String]
+	) extends TrieBuilder {
+
+		val iterators = tries.map(new TrieIterator(_))
+
+		override def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
+			var offset = 0
+
+			def buildSubTrie (lv:Int): Rep[Unit] = {
+				val it_involved = iterators.filter (_.trie.schema contains resultSchema(lv))
+				val set_on_lv = it_involved map (_ getCurrSetOnAttr resultSchema(lv))
+				val sb = new SetBuilder (mem, start+offset)
+				val set = sb.build (set_on_lv)
+				offset += (set getSize)
+				if (lv != resultSchema-1) {
+					// foreach:
+					// 1. set iterators to child
+					// 2. build sub tries, 
+					// 3. and refine indices in their parent set
+					val it_involved_on_next_lv = 
+						iterators.filter (_.trie.schema contains resultSchema(lv+1))
+
+					// How to remove the code smell???
+					val typ = set.getType
+					if (typ == set_const.type_uint_set) {
+						val concrete_set = new UIntSet (set.mem, set.data)
+						concrete_set foreach_index { index =>
+							val x = concrete_set getKeyByIndex index
+							it_involved setChildSet (lv, x)  // open(lv): to the child of x
+							sb refineIndexByIndex (index, start+offset)
+							buildSubTrie(lv+1)
+						}
+					}
+					else if (typ == set_const.type_bit_set) {
+						val concrete_set = new BitSet (set.mem, set.data)
+						concrete_set foreach { x =>
+							it_involved setChildSet (lv, x) 
+							sb refineIndexByValue (x, start+offset)
+							buildSubTrie(lv+1)
+						}
+					}
+				}
+			}
+
+			// init: put iterators on attribute schema(0) at position
+			iterators foreach (_.init)
+			buildSubTrie(0)
+			offset
+		}
+	}
 }

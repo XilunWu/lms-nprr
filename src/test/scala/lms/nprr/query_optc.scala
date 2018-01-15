@@ -247,13 +247,13 @@ Query Interpretation = Compilation
 
       // tries(0) printTrie
       
-      // val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
+      val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
 
       // Build the result trie
-      // val tb_size = tb.build (mem, start)
+      val tb_size = tb.build (mem, start)
 
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // println(tb getCardinality)
