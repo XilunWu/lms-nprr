@@ -253,7 +253,7 @@ Query Interpretation = Compilation
       unchecked[Unit]("begin = clock()")
 
       // Build the result trie
-      val tb_size = tb.build (mem, start)
+      val tb_size = tb.build (mem.mem, start)
 
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // println(tb getCardinality)

@@ -136,13 +136,25 @@ trait Trie extends MemPool with Set {
 	class LevelOrderTrie extends Trie {}
 
 	trait ParTrie extends Trie {}
-
+	*/
 	class TrieIterator (val trie: Trie) {
 		// val trie: Trie
 		val cursor: Rep[Array[Int]] = NewArray[Int](trie.schema.length)
 		val keys: Rep[Array[Int]] = NewArray[Int](trie.schema.length)
-		var curr_lv = 0
+		
+		def init = { // need?
 
+		}
+		def setChildSet (lv: Int, value: Rep[Int]) = {  // open(lv, value)
+			val set = new BaseSet (trie.mem.mem, cursor(lv))
+			cursor(lv+1) = set getChild value
+		}
+		def getCurrSetOnAttr (attr: String) = {
+			val schema = trie.schema
+			new BaseSet (trie.mem.mem, cursor(schema indexOf attr))
+		}
+
+/*
 		def getNext = {
 			val set = trie getSet cursor(curr_lv)
 			val key = keys(curr_lv)
@@ -159,16 +171,18 @@ trait Trie extends MemPool with Set {
 			curr_lv += 1
 			cursor(curr_lv) = child
 		}
-		def init // need?
+*/
+		/*
 		def seek(key: Rep[Int]) = {
 			val set = trie getSet cursor(curr_lv)
 			val res = set getKeyGTE key
 			res
 		}
+		*/
 	}
 
-	trait ParTrieIterator extends TrieIterator {}
-	*/
+	// class ParTrieIterator extends TrieIterator {}
+	
 
 	abstract class TrieBuilder {
 		val tries: List[Trie]
@@ -194,7 +208,7 @@ trait Trie extends MemPool with Set {
 				val sb = new SetBuilder (mem, start+offset)
 				val set = sb.build (set_on_lv)
 				offset += (set getSize)
-				if (lv != resultSchema-1) {
+				if (lv != resultSchema.length-1) {
 					// foreach:
 					// 1. set iterators to child
 					// 2. build sub tries, 

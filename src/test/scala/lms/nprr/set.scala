@@ -126,8 +126,10 @@ trait Set extends UncheckedOps {
 			val start = mem(data+loc_set_body_size) + size_set_head
 			mem(data+start+value-min) = c_addr
 		}
-		def build (s1: BaseSet) = {}
-		def build (s1: BaseSet, s2: BaseSet) = {}
+		def build (s1: BaseSet) = s1
+		def build (s1: BaseSet, s2: BaseSet) = {
+			
+		}
 		def build (s: List[BaseSet]) = {
 
 		}
@@ -157,7 +159,14 @@ trait Set extends UncheckedOps {
 			0
 		}
 		def getChild(key: Rep[Int]): Rep[Int] = {
-			0
+			val typ = getType
+			if (typ == type_uint_set) {
+				val concrete_set = new UIntSet (mem, data)
+				concrete_set getChild key
+			}	else if (typ == type_bit_set) {
+				val concrete_set = new BitSet (mem, data)
+				concrete_set getChild key
+			} else 0
 		}
 		def getKeyGTE(key: Rep[Int]): Rep[Int] = {
 			0
@@ -239,7 +248,7 @@ trait Set extends UncheckedOps {
 			def searchInRange (begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
 				var b = begin
 				var e = end
-				while (e - b >= 5) {
+				while (e - b >= 5) {	
 					val pivot = (b + e) / 2
 					if (mem(addr+pivot) == key) {
 						b = pivot
