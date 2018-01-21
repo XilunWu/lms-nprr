@@ -2,7 +2,7 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait Trie extends MemPool with Set {
+trait Trie extends MemPool with TrieBlock {
 	this: Dsl =>
 
 	abstract class Trie {
@@ -36,8 +36,8 @@ trait Trie extends MemPool with Set {
 			}
 		}
 
-		def getSet(offset: Rep[Int]): Set = {
-			new BaseSet (mem.mem, data+offset)  // the func signature may need change
+		def getTrieBlock(offset: Rep[Int]): TrieBlock = {
+			TrieBlock (mem.mem, data+offset)  // the func signature may need change
 		}
 	}
 
@@ -45,7 +45,8 @@ trait Trie extends MemPool with Set {
 	class SimpleTrie (
 		val mem: MemPool, 
 		val data: Rep[Int], 
-		val schema: Vector[String]) extends Trie {
+		val schema: Vector[String]
+	) extends Trie {
 
 		def buildTrie: Rep[Int] = {  // return the mem usage
 			var offset = 0
@@ -57,17 +58,18 @@ trait Trie extends MemPool with Set {
 				val arr = tmp_data(lv)
 				// make the judgement in Set.buildSet() method:
 				// what kind of set should we build.
-				val sb = new SetBuilder (mem.mem, data+offset)
-				val set = sb.build (arr, begin, end)
-				offset += (set getSize)
+				val tb = TrieBlock (mem.mem, data+offset)
+				tb.buildFromRawData (arr, begin, end)
+				// val t_block = tb.buildTrieBlock (arr, begin, end)
+				offset += (tb getSize)
 				if (lv != schema.length-1) {
 					var index = 0
-					while (index < (set getCardinality)) {
+					while (index < end - begin) {
 						val index_arr: Rep[Array[Int]] = tmp_index(lv)
 						val c_begin: Rep[Int] = index_arr(begin+index)  // specify the type of "recursive value"
 						val c_end = index_arr(begin+index+1)
 						// print("build set, offset = "); println(offset)
-						sb refineIndex (index, arr(begin+index), data+offset)
+						tb refineIndex (index, arr(begin+index), data+offset)
 						buildSubTrie(lv+1, c_begin, c_end)
 						index += 1
 					}
@@ -80,9 +82,9 @@ trait Trie extends MemPool with Set {
 
 		def printTrie = {
 			def printSubTrie (head: Rep[Int], lv: Int): Rep[Unit] = {
-				val set = new BaseSet (mem.mem, head)
+				val tb = TrieBlock (mem.mem, head)
 				print(" " * lv * 16)
-				printSetType (set getType)
+				printSetType (tb getType)
 				if (lv == schema.length-1) println("")
 				else {
 					// pattern match generates no code:
@@ -95,22 +97,21 @@ trait Trie extends MemPool with Set {
 						case _ => set
 					}
 					*/
-					val typ = set.getType
+					val typ = tb.getType
 					if (typ == set_const.type_uint_set) {
-						val concrete_set = new UIntSet (mem.mem, head)
+						val concrete_set = tb.getUintSet
 						concrete_set foreach { x =>
 							val c_set = concrete_set getChild(x)
 							printSubTrie (c_set, lv+1)
 						}
 					}
 					else if (typ == set_const.type_bit_set) {
-						val concrete_set = new BitSet (mem.mem, head)
+						val concrete_set = tb.getBitSet
 						concrete_set foreach { x =>
 							val c_set = concrete_set getChild(x)
 							printSubTrie (c_set, lv+1)
 						}
 					}
-					else {}
 				}
 			}
 			// Why this pattern match doesn't generate code?
@@ -145,13 +146,13 @@ trait Trie extends MemPool with Set {
 		def init = { // need?
 
 		}
-		def setChildSet (lv: Int, value: Rep[Int]) = {  // open(lv, value)
-			val set = new BaseSet (trie.mem.mem, cursor(lv))
-			cursor(lv+1) = set getChild value
+		def setChildBlock (lv: Int, value: Rep[Int]) = {  // open(lv, value)
+			val tb = TrieBlock (trie.mem.mem, cursor(lv))
+			cursor(lv+1) = tb getChildBlock value
 		}
-		def getCurrSetOnAttr (attr: String) = {
+		def getCurrBlockOnAttr (attr: String) = {
 			val schema = trie.schema
-			new BaseSet (trie.mem.mem, cursor(schema indexOf attr))
+			TrieBlock (trie.mem.mem, cursor(schema indexOf attr))
 		}
 
 /*
@@ -204,9 +205,9 @@ trait Trie extends MemPool with Set {
 
 			def buildSubTrie (lv:Int): Rep[Unit] = {
 				val it_involved = iterators.filter (_.trie.schema contains resultSchema(lv))
-				val set_on_lv = it_involved map (_ getCurrSetOnAttr resultSchema(lv))
-				val sb = new SetBuilder (mem, start+offset)
-				val set = sb.build (set_on_lv)
+				val block_on_lv = it_involved map (_ getCurrSetOnAttr resultSchema(lv))
+				val tb = TrieBlock (mem, start+offset)
+				tb.build (block_on_lv)
 				offset += (set getSize)
 				if (lv != resultSchema.length-1) {
 					// foreach:
@@ -217,21 +218,21 @@ trait Trie extends MemPool with Set {
 						iterators.filter (_.trie.schema contains resultSchema(lv+1))
 
 					// How to remove the code smell???
-					val typ = set.getType
+					val typ = tb.getType
 					if (typ == set_const.type_uint_set) {
-						val concrete_set = new UIntSet (set.mem, set.data)
+						val concrete_set = tb.getUintSet
 						concrete_set foreach_index { index =>
 							val x = concrete_set getKeyByIndex index
 							it_involved setChildSet (lv, x)  // open(lv): to the child of x
-							sb refineIndexByIndex (index, start+offset)
+							tb refineIndexByIndex (index, start+offset)
 							buildSubTrie(lv+1)
 						}
 					}
 					else if (typ == set_const.type_bit_set) {
-						val concrete_set = new BitSet (set.mem, set.data)
+						val concrete_set = tb.getBitSet
 						concrete_set foreach { x =>
 							it_involved setChildSet (lv, x) 
-							sb refineIndexByValue (x, start+offset)
+							tb refineIndexByValue (x, start+offset)
 							buildSubTrie(lv+1)
 						}
 					}

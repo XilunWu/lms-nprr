@@ -243,6 +243,7 @@ trait DslGenC extends CGenNumericOps
       #include <time.h>
       #include <immintrin.h>
       #include <functional>
+      #include <stdbool.h>
 
       using namespace std;
 
@@ -363,6 +364,67 @@ trait DslGenC extends CGenNumericOps
               bitmap_start[i] = bit[i]+start[i];
           }
           return simd_bitmap_intersection_helper(&output[head], bitmap_start, num_of_maps, bitmap_size, min);
+      }
+
+      inline uint64_t simd_bitset_intersection_helper(uint64_t * output, uint64_t * a_in, uint64_t * b_in, uint64_t len) {
+        //we assume equal size and bitmaps all are already aligned here:                                                             
+        uint64_t i = 0;
+        uint64_t curr = 0;
+        uint64_t last_non_zero = 0;
+        bool flag = false;
+        uint64_t res_len = 0;
+        uint64_t start = 0;
+        uint64_t count = 0;
+
+        while ((i+4) < len) {
+            __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
+            const __m256 m_b = _mm256_loadu_ps((float*) &(b_in[i]));
+            m_a = _mm256_and_ps(m_a, m_b);
+
+            // separate r into 4 uint64_t
+            // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
+            for(int index = 0; index < 4; ++index) {
+              uint64_t c = _mm256_extract_epi64((__m256i)m_a, index);                
+              if (flag == false && c != 0) {
+                flag = true;
+                start = i+index;
+              }
+              if (flag == true) {
+                if (c != 0) {
+                  last_non_zero = curr;
+                  count += __builtin_popcountll(c);
+                } 
+                output[curr++] = c;
+              }
+            }
+            i += 4;
+        }
+        uint64_t i_tmp = i;
+        while (i < len) {
+            uint64_t c = a_in[i];
+            c &= b_in[i];
+
+            if (flag == false && c != 0)  {
+                flag = true;
+                start = i;
+            }
+            if (flag == true) {
+              if (c != 0) {
+                last_non_zero = curr;
+                count += __builtin_popcountll(c);
+              } 
+              output[curr++] = c;
+            }
+            i += 1;
+        }
+        if (flag == false) res_len = 0;
+        else res_len = last_non_zero + 1;
+        output[curr++] = count;
+        output[curr++] = start;
+        return res_len;
+      }
+      inline uint64_t simd_bitset_intersection(uint64_t * output, uint64_t o_start, uint64_t * a_in, uint64_t a_start, uint64_t * b_in, uint64_t b_start, uint64_t len) {
+        return simd_bitset_intersection_helper(&output[o_start], &a_in[a_start], &b_in[b_start], len);
       }
 
       inline uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {

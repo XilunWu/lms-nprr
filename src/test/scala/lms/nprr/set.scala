@@ -4,15 +4,15 @@ import scala.lms.common._
 
 object set_const {
 	// Set head
-	val loc_set_size = 0  // the size of set. In sizeof(Int)
-	val loc_set_type = 1
-	val loc_set_card = 2  // the cardinality of set
-	val loc_set_range = 3  // range = max - min
-	val loc_set_min = 4
-	val loc_set_body_size = 5
+	// UintSet: len
+	// BitSet: len, card, min
+	val loc_uint_set_len = 0
+	val loc_bit_set_len = 0
+	val loc_bit_set_card = 1
+	val loc_bit_set_min = 2
 
-	val size_set_head = 6
-	// Set body
+	val size_uint_set_head = 1
+	val size_bit_set_head = 3
 
 	// Set type
 	val type_uint_set = 0
@@ -20,11 +20,11 @@ object set_const {
 
 	// Set specific const
 	val BITS_PER_INT = 64
-	val BITS_PER_INT_SHIFT = 6
+	val BITS_PER_INT_SHIFT = 6	
 }
 // Index is the absolute addr of child set in memory pool
 
-trait Set extends UncheckedOps {
+trait Set extends UncheckedOps with SetIntersection {
 	this: Dsl =>
 
 	import set_const._
@@ -48,6 +48,7 @@ trait Set extends UncheckedOps {
 			}
 
 			def buildBitSet = {
+				// Build Bitset from Int Array
 				val min = (arr(begin) >> BITS_PER_INT_SHIFT) << BITS_PER_INT_SHIFT
 				var i = begin
 				var curr_int = 0
@@ -127,14 +128,71 @@ trait Set extends UncheckedOps {
 			mem(data+start+value-min) = c_addr
 		}
 		def build (s1: BaseSet) = s1
-		def build (s1: BaseSet, s2: BaseSet) = {
+		def build (s1: BaseSet, s2: BaseSet): BaseSet = {
 			
 		}
-		def build (s: List[BaseSet]) = {
+		private def build (s1: UIntSet, s2: UIntSet): BaseSet = {
+			s2
+		}
+		private def build (s1: UIntSet, s2: BitSet): BaseSet = {
+			s2
+		}
+		private def build (s1: BitSet, s2: BitSet): BaseSet = {
+			s2
+		}
+		private def find_min_in_bitset (bit_arr: Rep[Int]) = {
+			uncheckedPure[Int](
+				"__builtin_clzll(",
+				"(uint64_t) ", bit_arr,
+				")"
+			)
+		}
+		private def find_max_in_bitset (bit_arr: Rep[Int]) = {
+			val tzeros = uncheckedPure[Int](
+				"__builtin_ctzll(",
+				"(uint64_t) ", bit_arr,
+				")"
+			)
+			val max = BITS_PER_INT - tzeros - 1
+			max
+		}
+		/*
+		private def buildBitsetHeadFromBitArray (
+			bit_arr: Rep[Int], bit_arr_start: Rep[Int], bit_arr_len: Rep[Int],  
+			bit_arr_min: Rep[Int], bit_arr_card: Rep[Int],
+			target_mem: Rep[Int], target_mem_start: Rep[Int]
+		) = {
+			// Build set head
+			target_mem(target_mem_start+loc_set_type) = type_bit_set
+			target_mem(target_mem_start+loc_set_card) = bit_arr_card
+			val body_size = bit_arr_len
+			val index_size = body_size << BITS_PER_INT_SHIFT
+			target_mem(target_mem_start+loc_set_min) = bit_arr_min
+			target_mem(target_mem_start+loc_set_range) = body_size << BITS_PER_INT_SHIFT
+			target_mem(target_mem_start+loc_set_size) = size_set_head + body_size + index_size
+			target_mem(target_mem_start+loc_set_body_size) = body_size
+		}
+		*/
+		def build (s: List[BaseSet]): BaseSet = {
+			// if s.length == 1 ... else ...
+			// we don't support 1 attribute yet.
+			val a_set = s(0) getSimpleSet
+			val b_set = s(1) getSimpleSet
+			intersection.setIntersection(a_set, b_set)
+			var i = 2
+			while (i < s.length) { //
+				intersection.setIntersection(s(i) getSimpleSet)
+				i += 1 
+			} 
+			// copy the tmp set into mem
+			// ...
+
+			// clear memory after building
+			intersection.clearMem
 
 		}
 	}
-
+/*
 	abstract class Set {
 		val mem: Rep[Array[Int]]
 		val data: Rep[Int]
@@ -145,19 +203,60 @@ trait Set extends UncheckedOps {
 		def getKey(offset: Rep[Int]) = mem(data+offset)
 		def getRange = mem(data+loc_set_range)
 		def getMin = mem(data+loc_set_min)
-		def getNextKey(key: Rep[Int]): Rep[Int]  // return offset of the appropriate key
+		def getBodySize = mem(data+loc_set_body_size)
+		def getMem = mem
+		def getBody = data + size_set_head
 		def getChild(key: Rep[Int]): Rep[Int]    // return head of the child set
-		def getKeyGTE(key: Rep[Int]): Rep[Int]  // return addr of the appropriate key
-		def foreach(f: Rep[Int] => Rep[Unit]): Rep[Unit]
 	}
-
-	class BaseSet (
+*/
+	class Set (
 		val mem: Rep[Array[Int]], 
 		val data: Rep[Int]) extends Set {
 
-		def getNextKey(key: Rep[Int]): Rep[Int] = {
-			0
+		def buildBitSet (arr: Rep[Array[Int]],
+		 begin: Rep[Int], end: Rep[Int]) = {
+			mem(data+loc_bit_set_card) = end - begin
+			val min = (arr(begin) >> BITS_PER_INT_SHIFT) << BITS_PER_INT_SHIFT
+			val max = arr(end - 1)
+			mem(data+loc_bit_set_len) = ((max - min) >> BITS_PER_INT_SHIFT) + 1
+			mem(data+loc_bit_set_min) = min
+
+			var i = begin
+			var curr_int = 0
+			var bit_int = 0
+			var min_in_curr_int = min
+			while (i < end) {
+				val value = arr(i)
+				// print("value = "); println(value)
+				while (value - min_in_curr_int >= BITS_PER_INT) {
+					// unchecked[Unit]("printf(\"%x\\n\", ", readVar(bit_int), ")")
+					mem(data+size_bit_set_head+curr_int) = bit_int
+					min_in_curr_int += BITS_PER_INT
+					curr_int += 1
+					bit_int = 0
+				}
+				val diff = value - min_in_curr_int
+				val last_bit = uncheckedPure[Int]("1l << ", (BITS_PER_INT - diff - 1))
+				bit_int = bit_int | last_bit
+				i += 1
+			}
+			if (bit_int != 0) mem(data+size_bit_set_head+curr_int) = bit_int
 		}
+
+		def buildUintSet (arr: Rep[Array[Int]],
+		 begin: Rep[Int], end: Rep[Int]) = {
+			mem(data+loc_uint_set_len) = end - begin			
+		 	// build uint set head
+			var i = begin
+			while (i < end) {
+				// TODO: replace with memcpy 
+				mem(data+size_uint_set_head+i-begin) = arr(i)
+				i += 1
+			}
+		}
+
+
+
 		def getChild(key: Rep[Int]): Rep[Int] = {
 			val typ = getType
 			if (typ == type_uint_set) {
@@ -168,25 +267,27 @@ trait Set extends UncheckedOps {
 				concrete_set getChild key
 			} else 0
 		}
-		def getKeyGTE(key: Rep[Int]): Rep[Int] = {
-			0
-		}
-		def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
 
-		}
+		//	 Need modify data structure
+		def getSimpleSet: SimpleSet = 
+			SimpleSet(mem, data+size_set_head)
 	}
 
 	class BitSet (
 		m: Rep[Array[Int]], 
 		d: Rep[Int]) extends BaseSet (m, d) {
 
+		def getLen = mem(data+loc_bit_set_len)
+		def getCard = mem(data+loc_bit_set_card)
+		def getMin = mem(data+loc_bit_set_min)
+		def getSize = size_bit_set_head + getLen
 		override def getChild(key: Rep[Int]): Rep[Int] = {
 			val index = key - getMin
 			val start = data+size_set_head+mem(data+loc_set_body_size)
 			mem(start+index)
 		}
 
-		override def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
+		def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
 			var i = 0
 			var j = 0
 			val arr = NewArray[Int](getCardinality)
@@ -211,10 +312,13 @@ trait Set extends UncheckedOps {
 		}
 	}
 
-	class UIntSet (
+	class UintSet (
 		m: Rep[Array[Int]], 
 		d: Rep[Int]) extends BaseSet (m, d){
 
+		def getLen = mem(data+loc_uint_set_len)
+		def getCard = getLen
+		def getSize = size_uint_set_head + getCard
 		def getKeyByIndex(index: Rep[Int]): Rep[Int] = 
 			mem(data+size_set_head+index)
 		def getChildByIndex(index: Rep[Int]): Rep[Int] = {
@@ -268,7 +372,7 @@ trait Set extends UncheckedOps {
 			searchInRange (0, mem(data+loc_set_card))
 		}
 
-		override def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
+		def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
 			var i = 0
 			while ( i < getCardinality ) {
 				f (mem(data+size_set_head+i))
