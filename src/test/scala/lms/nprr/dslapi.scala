@@ -246,6 +246,7 @@ trait DslGenC extends CGenNumericOps
       #include <stdbool.h>
 
       using namespace std;
+      #define BITS_IN_AVX_REG 128 // or 256
 
       #ifndef MAP_FILE
       #define MAP_FILE MAP_SHARED
@@ -287,84 +288,7 @@ trait DslGenC extends CGenNumericOps
         return atoi(s);
       }
 
-      // Timer Variables
-      // clock_t encoding_time_begin, encoding_time_end;
-      /*
-      clock_t decoding_time_begin, decoding_time_end;
-      clock_t union_time_begin, union_time_end;
-      double decoding_time, union_time;
-      */
       uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min);
-
-      // bitset INTERSECT bitset -> bitset
-      // HEAD: type | cardinality | range | min
-      inline uint64_t simd_bitmap_intersection_helper(uint64_t* output, uint64_t **bit, uint64_t num_of_maps, uint64_t bitmap_size, uint64_t min) {
-          //we assume equal size and bitmaps all are already aligned here:                                                             
-          uint64_t i = 0;
-          uint64_t j = 0;
-          uint64_t new_min = 0;
-          uint64_t new_range = 0;
-          uint64_t count = 0;
-
-          while ((i+4) < bitmap_size) {
-              // union_time_begin = clock();
-              __m256 m_a = _mm256_loadu_ps((float*) &(bit[0][i]));
-              for(int j = 1; j < num_of_maps; ++j) {
-                  const __m256 m_b = _mm256_loadu_ps((float*) &(bit[j][i]));
-                  m_a = _mm256_and_ps(m_a, m_b);
-              }
-              // union_time_end = clock();
-              // union_time += (double)(union_time_end - union_time_begin) / CLOCKS_PER_SEC;
-
-              // separate r into 4 uint64_t
-              // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
-              for(int index = 0; index < 4; ++index) {
-                  uint64_t c = _mm256_extract_epi64((__m256i)m_a, index);
-                  if (c == 0 && j == 0) new_min += 64;
-                  else {
-                    output[j++] = c;
-                    if (c != 0) {
-                      count += __builtin_popcountll(c);
-                    }
-                  }
-              }
-              i += 4;
-          }
-          uint64_t i_tmp = i;
-          while (i < bitmap_size) {
-              uint64_t c = bit[0][i];
-              for(int j = 1; j < num_of_maps; ++j) c &= bit[j][i];
-              if (c == 0 && j == 0) new_min += 64;
-              else {
-                output[j++] = c;
-                if (c != 0) {
-                  count += __builtin_popcountll(c);
-                }
-              }
-              i += 1;
-          }
-          // find range
-          if (j == 0) { // empty set. No intersection
-            *(output-2) = 0;
-          }
-          else {
-            while (output[--j] == 0);
-            new_range = j+1;
-            *(output-1) = new_min + min;
-            *(output-2) = new_range;
-          }
-          return count;
-      }
-
-      inline uint64_t simd_bitmap_intersection(uint64_t * output, uint64_t head, uint64_t **bit, uint64_t *start, uint64_t num_of_maps, uint64_t \
-      bitmap_size, uint64_t min) {
-          uint64_t **bitmap_start = (uint64_t**)malloc(num_of_maps * sizeof(uint64_t *));
-
-          for(int i = 0; i < num_of_maps; ++i) {
-              bitmap_start[i] = bit[i]+start[i];
-          }
-          return simd_bitmap_intersection_helper(&output[head], bitmap_start, num_of_maps, bitmap_size, min);
-      }
 
       inline uint64_t simd_bitset_intersection_helper(uint64_t * output, uint64_t * a_in, uint64_t * b_in, uint64_t len) {
         //we assume equal size and bitmaps all are already aligned here:                                                             
@@ -419,8 +343,9 @@ trait DslGenC extends CGenNumericOps
         }
         if (flag == false) res_len = 0;
         else res_len = last_non_zero + 1;
-        output[curr++] = count;
-        output[curr++] = start;
+        *(output - 3) = res_len;
+        *(output - 2) = count;
+        *(output - 1) = start;
         return res_len;
       }
       inline uint64_t simd_bitset_intersection(uint64_t * output, uint64_t o_start, uint64_t * a_in, uint64_t a_start, uint64_t * b_in, uint64_t b_start, uint64_t len) {

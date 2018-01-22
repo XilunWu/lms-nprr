@@ -16,6 +16,8 @@ trait SetIntersection extends Set {
 		import set_const._
 		import tmp._
 
+		def clearMem = { curr_set_head = 0; curr_set_type = 0 }
+
 		def getCurrSetSize = {
 			if (getCurrSetType == type_uint_set) 
 				size_uint_set_head + mem(curr_set_head + loc_uint_set_len)
@@ -27,14 +29,19 @@ trait SetIntersection extends Set {
 		def getCurrSetType = curr_set_type
 
 		// a: uint set, b: uint set
-		def uint_inter (a: Rep[Array[Int]], b: Rep[Array[Int]], 
+		def uint_inter (a: UintSet, b: UintSet): Set = {
+			// if sparse, return BitSet
+			// else UintSet
+			Set(mem, curr_set_head)
+		}
+		def uint_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
 			a_len: Rep[Int], b_len: Rep[Int],
 			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
-
+			0
 		}
 
-		def bit_inter (a: BitSet, b: BitSet): Set = {
+		def bit_inter (a: BitSet, b: BitSet): BitSet = {
 			val a_len = a.getLen
 			val b_len = b.getLen
 			val a_min = a.getMin
@@ -50,17 +57,19 @@ trait SetIntersection extends Set {
 			val b_arr_start = b.getData + c_start - b_start
 
 			// the new set will overwrite the old set in tmp memory
-			// the struct is: head, data
-			// returns the type of set
-			val next_set_start = curr_set_head + getCurrSetSize
-			val new_set_type = bit_inter_helper (
+			// the struct returned by inter_helper is: head, data. 
+			// so we need allocate space in front of data.
+			// inter_helper returns the type of set.
+			val next_set_start = curr_set_head + getCurrSetSize + size_bit_set_head
+			val c_set_len = bit_inter_helper (
 				a_arr, b_arr, a_arr_start, b_arr_start, c_len, mem, next_set_start)
-			
-			val c_min_offset = mem (bitarr_len+loc_bit_array_min_offset)
-			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
 
-			val c_array = new SimpleSet (tmp.mem, 0, type_bit_set, bitarr_len, c_real_min)
-			c_array
+			val c_min_offset = mem (next_set_start+loc_bit_set_min-size_bit_set_head)
+			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
+			curr_set_head = next_set_start - size_bit_set_head
+			curr_set_type = type_bit_set
+			val c_set = BitSet (mem, next_set_start - size_bit_set_head)
+			c_set
 		}
 		// a: bit set, b: bit set --> c
 		// a and b are aligned before hand
@@ -72,7 +81,7 @@ trait SetIntersection extends Set {
 			// simd_bitset_intersection returns the len of the bit array
 			// it discards the beginning and ending 0s
 			// set builder will count the total 1s
-			val bitarr_len = uncheckedPure[Int](
+			val set_type = uncheckedPure[Int](
           "simd_bitset_intersection((uint64_t *)", c, 
           ", ", c_start,
           ", (uint64_t *)", a, 
@@ -82,59 +91,47 @@ trait SetIntersection extends Set {
           ", (uint64_t)", len,
           ")"
         )
-			bitarr_len
+			set_type
 		}
 
 		// a: uint set, b: bit set --> c
-		def uint_bit_inter (a: Rep[Array[Int]], b: Rep[Array[Int]], 
+		def uint_bit_inter (a: UintSet, b: BitSet): UintSet = {
+			UintSet(mem, curr_set_head)
+		}
+		def uint_bit_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
 			a_len: Rep[Int], b_len: Rep[Int],
 			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
-			
+			0
 		}
 
 		// result set is stored in
 		// returns the result set type 
-		def setIntersection (a: SimpleSet, b: SimpleSet): SimpleSet = {
-			if (a.typ == type_bit_set) {
-				if (s2.getType == type_bit_set) 
-					build(new BitSet(s1.mem, s1.data), new BitSet(s2.mem, s2.data))
-				else // type_uint_set
-					build(new UIntSet(s2.mem, s2.data), new BitSet(s1.mem, s1.data))
-			}
-			else { // type_uint_set 
-				if (s2.getType == type_bit_set) 
-					build(new UIntSet(s1.mem, s1.data), new BitSet(s2.mem, s2.data))
-				else
-					build(new UIntSet(s1.mem, s1.data), new UIntSet(s2.mem, s2.data))
-			}
-			// curr_simple_set points to the new simple set
-			tmp.curr_simple_set = 
-			SimpleSet(tmp.mem, tmp.curr_simple_set)
+		def setIntersection (a: BitSet, b: BitSet): BitSet = {
+			bit_inter(a, b)
+		}
+
+		def setIntersection (a: UintSet, b: BitSet): UintSet = {
+			uint_bit_inter(a, b)
+		}
+
+		def setIntersection (a: UintSet, b: UintSet): Set = {
+			uint_inter(a, b)
 		}
 
 		// returns the result set type
-		def setIntersection (a: SimpleSet): Rep[Int] = { 
-			def currSet = SimpleSet (tmp.mem, tmp.curr_simple_set)
-			setIntersection(a, currSet)
+		def setIntersection (a: BitSet): Rep[Int] = { 
+			if (getCurrSetType == type_uint_set) 
+				setIntersection (UintSet(mem, curr_set_head), a)
+			else // type_bit_set
+				setIntersection (BitSet(mem, curr_set_head), a)
+		}
+		def setIntersection (a: UintSet): Rep[Int] = { 
+			if (getCurrSetType == type_uint_set) 
+				setIntersection (UintSet(mem, curr_set_head), a)
+			else // type_bit_set
+				setIntersection (a, BitSet(mem, curr_set_head))
 		}
 		
 	}
-
-	 
-	/*
-	sealed abstract SimpleArray
-	case class BitArray (
-		val array: Rep[Array[Int]],
-		val start: Rep[Int],
-		val len: Rep[Int],
-		val min: Rep[Int]
-	) extends SimpleArray
-	case class UIntArray (
-		val array: Rep[Array[Int]],
-		val start: Rep[Int],
-		val len: Rep[Int],
-		val min: Rep[Int]
-	) extends SimpleArray
-	*/
 }

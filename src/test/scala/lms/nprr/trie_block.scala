@@ -92,21 +92,35 @@ trait TrieBlock extends Set with SetIntersection{
 		}
 
 		def build (List[TrieBlock]): Rep[Int] = { 
-			var result_set_type = -1
 			// if s.length == 1 ... else ...
 			// we don't support 1 relation join yet.
-			val a_set = s(0) getSet
-			val b_set = s(1) getSet
+			val a_set_type = s(0) getType
+			val b_set_type = s(1) getType
+			if (a_set_type == type_bit_set) { 
+				if (b_set_type == type_bit_set) {
+					intersection.setIntersection (s(0) getBitSet, s(1) getBitSet)
+				} else {
+					intersection.setIntersection (s(1) getUintSet, s(0) getUintSet)
+				}
+			} else { // uintset
+				if (b_set_type == type_bit_set) {
+					intersection.setIntersection (s(0) getUintSet, s(1) getBitSet)
+				} else {
+					intersection.setIntersection (s(0) getUintSet, s(1) getUintSet)
+				}
+			}
 			// the result is stored in the tmp memory of object "intersection"
-			result_set_type = intersection.setIntersection(a_set, b_set)
 			var i = 2
 			while (i < s.length) { 
 				// the result is stored in the tmp memory of object "intersection"
-				result_set_type = intersection.setIntersection(s(i) getSet)
+				if (s(i).getType == type_uint_set)
+					intersection.setIntersection(s(i) getUintSet)
+				else 
+					intersection.setIntersection(s(i) getBitSet)
 				i += 1 
 			} 
 			// copy the tmp set into mem
-			mem(data+loc_trie_block_type) = result_set_type
+			mem(data+loc_trie_block_type) = intersection.getCurrSetType
 			memcpy (
 				mem, data+size_of_trie_block_head, 
 				intersection.getMem, intersection.getSet, 

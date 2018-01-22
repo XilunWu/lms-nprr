@@ -20,7 +20,7 @@ object set_const {
 
 	// Set specific const
 	val BITS_PER_INT = 64
-	val BITS_IN_AVX_REG = 128 // or 256
+	val BITS_IN_AVX_REG = 128 // or 256. It's also defined as macro in c header
 	val BITS_PER_INT_SHIFT = 6	
 	val BYTES_PER_INT = 8
 }
@@ -39,7 +39,7 @@ trait Set extends UncheckedOps {
 			"(size_t) ", BYTES_PER_INT*len, ")"
 		)
 	}
-	class Set (
+	case class Set (
 		val mem: Rep[Array[Int]], 
 		val data: Rep[Int]) {
 
@@ -86,7 +86,7 @@ trait Set extends UncheckedOps {
 		}
 	}
 
-	class BitSet (
+	case class BitSet (
 		m: Rep[Array[Int]], 
 		d: Rep[Int]) extends Set (m, d) {
 
@@ -143,7 +143,7 @@ trait Set extends UncheckedOps {
 		}
 	}
 
-	class UintSet (
+	case class UintSet (
 		m: Rep[Array[Int]], 
 		d: Rep[Int]) extends Set (m, d){
 
