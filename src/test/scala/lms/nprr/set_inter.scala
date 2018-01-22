@@ -2,39 +2,29 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
-trait SetIntersection {
+trait SetIntersection extends Set {
 	this: Dsl =>
 
 	object tmp {
 		val mem_size = 1 << 22
 		val mem = NewArray[Int] (tmp_mem_size)  // may need be larger
-		var curr_simple_set = 0
-	}
-
-	object inter_const {
-		// data type
-		val BITS_PER_INT = 64
-		val BITS_PER_INT_SHIFT = 6
-
-		// Intermediate array struct
-		val loc_simple_set_type = 0
-
-		// bit set
-		val loc_simple_bit_set_len = 1
-		val loc_simple_bit_set_min = 2
-		val size_simple_bit_set_head = 3
-
-		// uint set
-		val loc_simple_uint_set_card = 1
-		val size_simple_uint_set_head = 2
-
-		// types
-		val type_simple_uint_set = 0
-		val type_simple_bit_set = 1
+		var curr_set_head = 0
+		var curr_set_type = 0
 	}
 
 	object intersection {
-		import inter_const._
+		import set_const._
+		import tmp._
+
+		def getCurrSetSize = {
+			if (getCurrSetType == type_uint_set) 
+				size_uint_set_head + mem(curr_set_head + loc_uint_set_len)
+			else {  //type_bit_set
+				size_bit_set_head + mem(curr_set_head + loc_bit_set_len)
+			}
+		}
+
+		def getCurrSetType = curr_set_type
 
 		// a: uint set, b: uint set
 		def uint_inter (a: Rep[Array[Int]], b: Rep[Array[Int]], 
@@ -44,27 +34,29 @@ trait SetIntersection {
 
 		}
 
-		def bit_inter (a: SimpleSet, b: SimpleSet): SimpleSet = {
-			val a_len = a.len
-			val b_len = b.len
-			val a_min = a.min
-			val b_min = b.min
+		def bit_inter (a: BitSet, b: BitSet): Set = {
+			val a_len = a.getLen
+			val b_len = b.getLen
+			val a_min = a.getMin
+			val b_min = b.getMin
 			val a_start = a_min >> BITS_PER_INT_SHIFT
 			val b_start = b_min >> BITS_PER_INT_SHIFT
 			val c_start = max (a_start, b_start)
 			val c_len = min (a_start+a_len, b_start+b_len) - c_start
 			val c_min = c_start << BITS_PER_INT_SHIFT
-			val a_arr = a.array
-			val a_arr_start = a.start + c_start - a_start
-			val b_arr = b.array
-			val b_arr_start = b.start + c_start - b_start
+			val a_arr = a.getMem
+			val a_arr_start = a.getData + c_start - a_start
+			val b_arr = b.getMem
+			val b_arr_start = b.getData + c_start - b_start
 
 			// the new set will overwrite the old set in tmp memory
-			// the struct is: data, card, min_offset 
-			val bitarr_len = bit_inter_helper (
-				a_arr, b_arr, a_arr_start, b_arr_start, c_len, tmp.mem, 0)
-
-			val c_min_offset = tmp.mem (bitarr_len+loc_bit_array_min_offset)
+			// the struct is: head, data
+			// returns the type of set
+			val next_set_start = curr_set_head + getCurrSetSize
+			val new_set_type = bit_inter_helper (
+				a_arr, b_arr, a_arr_start, b_arr_start, c_len, mem, next_set_start)
+			
+			val c_min_offset = mem (bitarr_len+loc_bit_array_min_offset)
 			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
 
 			val c_array = new SimpleSet (tmp.mem, 0, type_bit_set, bitarr_len, c_real_min)
@@ -101,42 +93,32 @@ trait SetIntersection {
 			
 		}
 
-		// result set is stored in 
+		// result set is stored in
+		// returns the result set type 
 		def setIntersection (a: SimpleSet, b: SimpleSet): SimpleSet = {
-
+			if (a.typ == type_bit_set) {
+				if (s2.getType == type_bit_set) 
+					build(new BitSet(s1.mem, s1.data), new BitSet(s2.mem, s2.data))
+				else // type_uint_set
+					build(new UIntSet(s2.mem, s2.data), new BitSet(s1.mem, s1.data))
+			}
+			else { // type_uint_set 
+				if (s2.getType == type_bit_set) 
+					build(new UIntSet(s1.mem, s1.data), new BitSet(s2.mem, s2.data))
+				else
+					build(new UIntSet(s1.mem, s1.data), new UIntSet(s2.mem, s2.data))
+			}
 			// curr_simple_set points to the new simple set
 			tmp.curr_simple_set = 
 			SimpleSet(tmp.mem, tmp.curr_simple_set)
 		}
 
-		def setIntersection (a: SimpleSet): SimpleSet = {
+		// returns the result set type
+		def setIntersection (a: SimpleSet): Rep[Int] = { 
 			def currSet = SimpleSet (tmp.mem, tmp.curr_simple_set)
 			setIntersection(a, currSet)
 		}
 		
-	}
-
-	class SimpleSet (
-		val array: Rep[Array[Int]],
-		val start: Rep[Int]) {
-		def typ = array(start + loc_simple_set_type)
-	}
-
-	class SimpleUintSet (
-		a: Rep[Array[Int]], 
-		s: Rep[Int]
-	) extends SimpleSet (a, s) {
-		override def typ = type_simple_uint_set
-		def card = array(start + loc_simple_uint_set_card)
-	}
-
-	class SimpleBitSet (
-		a: Rep[Array[Int]], 
-		s: Rep[Int]
-	) extends SimpleSet (a, s) {
-		override def typ = type_simple_bit_set
-		def len = array(start + loc_simple_bit_set_len)
-		def min = array(start + loc_simple_bit_set_min)
 	}
 
 	 
