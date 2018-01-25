@@ -14,66 +14,72 @@ object trie_block_const {
 }
 
 trait TrieBlock extends Set with SetIntersection{
+	this: Dsl => 
+
 	import trie_block_const._
 
 	case class TrieBlock (
 		val mem: Rep[Array[Int]],
 		val data: Rep[Int]
 	) {
-		val set = Set (mem, data+size_of_trie_block_head)
+		val set_data = data+size_of_trie_block_head
 
 		def getType = mem(data+loc_trie_block_type)
 		def getSize = {
 			if (getType == type_uint_set) {
-				val uintset = UintSet(set.mem, set.data)
+				val uintset = UintSet(mem, set_data)
 				size_of_trie_block_head + uintset.getSize + uintset.getCard
 			} else { // type_bit_set
-				val bitset = BitSet(set.mem, set.data)
+				val bitset = BitSet(mem, set_data)
 				size_of_trie_block_head + bitset.getSize + bitset.getIndexSize 
 			}
 		}
 		def getCard = {
 			if (getType == type_uint_set) {
-				val uintset = UintSet(set.mem, set.data)
+				val uintset = UintSet(mem, set_data)
 				uintset.getCard
 			} else { // type_bit_set
-				val bitset = BitSet(set.mem, set.data)
+				val bitset = BitSet(mem, set_data)
 				bitset.getCard
 			}
 		}
-		def getSet = set
-		def getBitSet = BitSet (mem, data+size_of_trie_block_head)
-		def getUintSet = UintSet (mem, data+size_of_trie_block_head)
+		def getSet = set_data
+		def getBitSet = BitSet (mem, set_data)
+		def getUintSet = UintSet (mem, set_data)
 		def getChildBlock (key: Rep[Int]) = {
 			if (getType == type_uint_set) {
-				val uintset = UintSet(set.mem, set.data)
+				val uintset = UintSet(mem, set_data)
 				val index = uintset getIndexByKey key
 				mem(data+size_of_trie_block_head+uintset.getSize+index)
 			} else { // type_bit_set
-				val bitset = BitSet(set.mem, set.data)
+				val bitset = BitSet(mem, set_data)
 				val index = bitset getIndexByKey key
 				mem(data+size_of_trie_block_head+bitset.getSize+index)
 			}
 		}
-		def refineIndex (index: Rep[Int], value: Rep[Int], c_addr: Rep[Int]) = {
-			getType match {
-				case type_uint_set => 
-					refineIndexByIndex (index, c_addr)
-				case type_bit_set =>
-					refineIndexByValue (value, c_addr)
-				case _ => 
+		def getChildBlockByIndex (index: Rep[Int]) =
+			if (getType == type_uint_set) {
+				val uintset = UintSet(mem, set_data)
+				mem(data+size_of_trie_block_head+uintset.getSize+index)
+			} else { // type_bit_set
+				val bitset = BitSet(mem, set_data)
+				mem(data+size_of_trie_block_head+bitset.getSize+index)
 			}
+
+		def refineIndex (index: Rep[Int], value: Rep[Int], c_addr: Rep[Int]) = {
+			if (getType == type_uint_set) refineIndexByIndex (index, c_addr)
+			else refineIndexByValue (value, c_addr)
 		}
 		def refineIndexByIndex (index: Rep[Int], c_addr: Rep[Int]) = {
-			val uintset = UintSet(set.mem, set.data)
+			val uintset = UintSet(mem, set_data)
 			val start = uintset.getSize
-			mem(set.data+start+index) = c_addr
+			mem(set_data+start+index) = c_addr
 		}
 		def refineIndexByValue (value: Rep[Int], c_addr: Rep[Int]) = {
-			val bitset = BitSet(set.mem, set.data)
+			val bitset = BitSet(mem, set_data)
 			val min = bitset.getMin
 			val start = bitset.getSize
-			mem(set.data+start+value-min) = c_addr
+			mem(set_data+start+value-min) = c_addr
 		}
 		def buildFromRawData (
 			arr: Rep[Array[Int]], begin: Rep[Int], end: Rep[Int]) = {
@@ -81,21 +87,25 @@ trait TrieBlock extends Set with SetIntersection{
 			val sparse = 
 				if ( arr(end-1) - arr(begin) < set_const.BITS_IN_AVX_REG * (end - begin) ) false
 				else true
-			if (sparse) {
+			// for test. We make all sets BitSet
+			// if (sparse) {
+			if (false) {
 				mem (data+loc_trie_block_type) = type_uint_set
+				val set = UintSet(mem, set_data)
 				set.buildUintSet (arr, begin, end)
 			}
 			else {
 				mem (data+loc_trie_block_type) = type_bit_set
+				val set = BitSet(mem, set_data)
 				set.buildBitSet (arr, begin, end)
 			}
 		}
 
-		def build (List[TrieBlock]): Rep[Int] = { 
+		def build (s: List[TrieBlock]): Rep[Int] = { 
 			// if s.length == 1 ... else ...
 			// we don't support 1 relation join yet.
-			val a_set_type = s(0) getType
-			val b_set_type = s(1) getType
+			val a_set_type = s(0).getType: Rep[Int]
+			val b_set_type = s(1).getType: Rep[Int]
 			if (a_set_type == type_bit_set) { 
 				if (b_set_type == type_bit_set) {
 					intersection.setIntersection (s(0) getBitSet, s(1) getBitSet)
@@ -110,25 +120,24 @@ trait TrieBlock extends Set with SetIntersection{
 				}
 			}
 			// the result is stored in the tmp memory of object "intersection"
-			var i = 2
-			while (i < s.length) { 
-				// the result is stored in the tmp memory of object "intersection"
-				if (s(i).getType == type_uint_set)
-					intersection.setIntersection(s(i) getUintSet)
+			s.tail.tail.foreach { tb =>
+				val next_set_type = tb.getType: Rep[Int]
+				if (next_set_type == type_uint_set)
+					intersection.setIntersection(tb getUintSet)
 				else 
-					intersection.setIntersection(s(i) getBitSet)
-				i += 1 
-			} 
+					intersection.setIntersection(tb getBitSet)
+			}
 			// copy the tmp set into mem
 			mem(data+loc_trie_block_type) = intersection.getCurrSetType
 			memcpy (
 				mem, data+size_of_trie_block_head, 
-				intersection.getMem, intersection.getSet, 
-				intersection.getSetSize
+				intersection.getMem, intersection.getCurrSet, 
+				intersection.getCurrSetSize
 			)
 			// clear memory after building
 			intersection.clearMem
 			getSize
 		}
 	}
+}
 

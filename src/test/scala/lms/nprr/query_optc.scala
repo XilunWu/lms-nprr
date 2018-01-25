@@ -224,13 +224,15 @@ Query Interpretation = Compilation
         }
       }
     case NprrJoin(parents, outSchema, num_threads) =>
-      // allocate mem buffer = 64MB
-      // for fb test case. mem usage for trie = 5283759 * sizeof(Int) = 42MB
-      val mem = new SimpleMemPool (1 << 23)
+      // allocate mem buffer = 256MB
+      // mem usage ~64MB -> ~128MB
+      val mem = new SimpleMemPool (1 << 25)
 
       var start = 0
+
       val tries = parents.map { p => 
-        val trie = new SimpleTrie(mem, start, resultSchema(p))
+        val t_start = start
+        val trie = new SimpleTrie(mem, t_start, resultSchema(p))
         execOp(p) { rec => trie += 
           rec.fields.map {
             case RInt (i: Rep[Int]) => i.AsInstanceOf[Int]
@@ -242,23 +244,24 @@ Query Interpretation = Compilation
         trie
       }
 
+      // tries(2).dumpTrie
       print("mem usage for trie: ")
       println(start)
 
-      // tries(0) printTrie
-      
       val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
 
+      // violated ordering of effect error here:
       // Build the result trie
       val tb_size = tb.build (mem.mem, start)
 
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
-      // println(tb getCardinality)
-      // print("Mem usage of tb = "); println(tb_size)
-      // start += tb_size
+      // we need add trie header
+      // println(SimpleTrie(mem, start, outSchema).getCard)
+      print("Mem usage of tb = "); println(tb_size)
+      start += tb_size
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)

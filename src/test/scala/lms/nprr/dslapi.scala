@@ -224,7 +224,6 @@ trait DslGenC extends CGenNumericOps
     case FloatToInt(lhs) => emitValDef(sym, "(int64_t)" + quote(lhs))
     case IntShiftRightLogical(lhs, rhs) => emitValDef(sym, "(uint64_t)" + quote(lhs) + " >> " + quote(rhs))
     case LongToInt(lhs) => emitValDef(sym, "(int64_t)"+quote(lhs))
-
     case _ => super.emitNode(sym,rhs)
   }
   override def emitSource[A:Typ](args: List[Sym[_]], body: Block[A], functionName: String, out: java.io.PrintWriter) = {
@@ -323,7 +322,6 @@ trait DslGenC extends CGenNumericOps
             }
             i += 4;
         }
-        uint64_t i_tmp = i;
         while (i < len) {
             uint64_t c = a_in[i];
             c &= b_in[i];
@@ -353,7 +351,6 @@ trait DslGenC extends CGenNumericOps
       }
 
       inline uint64_t decode2(uint64_t* vec, uint64_t *bitmap, uint64_t len, uint64_t min) {
-          // decoding_time_begin = clock();
           uint64_t i = 0;
           uint64_t count = 0;
           while (i < len) {
@@ -361,14 +358,12 @@ trait DslGenC extends CGenNumericOps
               uint64_t bitval = bitmap[i];
               count += num;
               for(int j = 0; j < num; ++j) {
-                        uint64_t pos = __builtin_ctzll(bitval);
-                        bitval ^= 1l << pos;
-                        vec[count-j-1] = min+i*64+63-pos;
+                  uint64_t pos = __builtin_ctzll(bitval);
+                  bitval ^= 1l << pos;
+                  vec[count-j-1] = min+i*64+63-pos;
               }
               i += 1;
           }
-          // decoding_time_end = clock();
-          // decoding_time += (double)(decoding_time_end - decoding_time_begin) / CLOCKS_PER_SEC;
           return count;
       }
       inline uint64_t decode(uint64_t* vec, uint64_t *bitmap, uint64_t start, uint64_t len, uint64_t min) {
