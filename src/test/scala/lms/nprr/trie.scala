@@ -306,8 +306,10 @@ trait Trie extends MemPool with TrieBlock {
 			var offset = 0
 			// for debugging use 
 			val res_tuple = NewArray[Int](resultSchema.length)
-			val debug_output_tuple = 1
+			val debug_output_tuple = 0
 			val debug_output_rels_on_lv = 0
+			val debug_output_count = 1
+			var count = 0
 
 			def buildSubTrie (lv:Int): Rep[Unit] = {
 				if (debug_output_rels_on_lv == 1) {
@@ -383,6 +385,20 @@ trait Trie extends MemPool with TrieBlock {
 							}
 						}
 					}
+					if (debug_output_count == 1) {
+						val typ = tb.getType
+						if (typ == set_const.type_uint_set) {
+							val concrete_set = tb.getUintSet
+							concrete_set foreach_index { index =>
+								count += 1
+							}
+						else if (typ == set_const.type_bit_set) {
+							val concrete_set = tb.getBitSet
+							concrete_set foreach { x =>
+								count += 1
+							}
+						}
+					}
 					unit() 
 				}
 			}
@@ -390,6 +406,7 @@ trait Trie extends MemPool with TrieBlock {
 			// init: put iterators on attribute schema(0) at position
 			iterators foreach (_.init)
 			buildSubTrie(0)
+			if (debug_output_count == 1) println(count)
 			offset
 		}
 	}

@@ -226,6 +226,7 @@ Query Interpretation = Compilation
     case NprrJoin(parents, outSchema, num_threads) =>
       // allocate mem buffer = 256MB
       // mem usage ~64MB -> ~128MB
+      // mem for result trie ???
       val mem = new SimpleMemPool (1 << 30)
 
       var start = 0
