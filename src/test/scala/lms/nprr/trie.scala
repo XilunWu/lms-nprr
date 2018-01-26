@@ -273,7 +273,8 @@ trait Trie extends MemPool with TrieBlock {
 		def init = { // need?
 
 		}
-		def setChildBlock (lv: Int, value: Rep[Int]) = {  // open(lv, value)
+		def setChildBlock (attr: String, value: Rep[Int]) = {  // open(lv, value)
+			val lv = trie.schema indexOf attr
 			val tb = TrieBlock (trie.mem.mem, cursor(lv))
 			cursor(lv+1) = tb getChildBlock value
 		}
@@ -303,10 +304,23 @@ trait Trie extends MemPool with TrieBlock {
 
 		override def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
 			var offset = 0
+			// for debugging use 
+			val res_tuple = NewArray[Int](resultSchema.length)
+			val debug_output_tuple = 1
+			val debug_output_rels_on_lv = 0
 
 			def buildSubTrie (lv:Int): Rep[Unit] = {
-				val it_involved = iterators.filter (_.trie.schema contains resultSchema(lv))
-				val block_on_lv = it_involved map (_ getCurrBlockOnAttr resultSchema(lv))
+				if (debug_output_rels_on_lv == 1) {
+					print("lv = "); print(lv); println(", relations on lv are:")
+					iterators.filter( it => 
+						it.trie.schema contains resultSchema( lv ) ).foreach { it =>
+						print(iterators indexOf it); print("\t")
+					}
+					println("")
+				}
+				val attr = resultSchema( lv )
+				val it_involved = iterators.filter (_.trie.schema contains attr)
+				val block_on_lv = it_involved map (_ getCurrBlockOnAttr attr)
 				val tb = TrieBlock (mem, start+offset)
 				// violating ordering of effect here in tb.build() function:
 				tb.build (block_on_lv)
@@ -316,16 +330,19 @@ trait Trie extends MemPool with TrieBlock {
 					// 1. set iterators to child
 					// 2. build sub tries, 
 					// 3. and refine indices in their parent set
+					/*
 					val it_involved_on_next_lv = 
 						iterators.filter (_.trie.schema contains resultSchema(lv+1))
-
+					*/
 					// How to remove the code smell???
 					val typ = tb.getType
 					if (typ == set_const.type_uint_set) {
 						val concrete_set = tb.getUintSet
 						concrete_set foreach_index { index =>
+							// debug 
 							val x = concrete_set getKeyByIndex index
-							it_involved foreach { it => it.setChildBlock (lv, x) } // open(lv): to the child of x
+							res_tuple(lv) = x
+							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
 							tb refineIndexByIndex (index, start+offset)
 							buildSubTrie(lv+1)
 						}
@@ -333,11 +350,40 @@ trait Trie extends MemPool with TrieBlock {
 					else if (typ == set_const.type_bit_set) {
 						val concrete_set = tb.getBitSet
 						concrete_set foreach { x =>
-							it_involved foreach { it => it.setChildBlock (lv, x) }
+							// debug 
+							res_tuple(lv) = x
+							it_involved foreach { it => it.setChildBlock (attr, x) }
 							tb refineIndexByValue (x, start+offset)
 							buildSubTrie(lv+1)
 						}
 					}
+				} else {  // for debug use 
+					if (debug_output_tuple == 1) {
+						val typ = tb.getType
+						if (typ == set_const.type_uint_set) {
+							val concrete_set = tb.getUintSet
+							concrete_set foreach_index { index =>
+								val x = concrete_set getKeyByIndex index
+								var i = 0
+								while ( i < resultSchema.length - 1 ) {
+									print(res_tuple(i)); print("\t")
+									i += 1
+								}
+								println(x)
+							}
+						} else if (typ == set_const.type_bit_set) {
+							val concrete_set = tb.getBitSet
+							concrete_set foreach { x =>
+								var i = 0
+								while ( i < resultSchema.length - 1 ) {
+									print(res_tuple(i)); print("\t")
+									i += 1
+								}
+								println(x)
+							}
+						}
+					}
+					unit() 
 				}
 			}
 

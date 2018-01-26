@@ -33,9 +33,9 @@ trait Set extends UncheckedOps {
 
 	def memcpy (dest: Rep[Array[Int]], dest_start:Rep[Int],
 		src: Rep[Array[Int]], src_start: Rep[Int], len: Rep[Int]) = {
-		unchecked[Unit] ( "memcpy((void *)", dest,
+		unchecked[Unit] ( "memcpy((char *)", dest,
 			" + ", BYTES_PER_INT*dest_start, ", ",
-			"(void *)", src, " + ", BYTES_PER_INT*src_start, ", ", 
+			"(char *)", src, " + ", BYTES_PER_INT*src_start, ", ", 
 			"(size_t) ", BYTES_PER_INT*len, ")"
 		)
 	}

@@ -15,12 +15,12 @@ trait SetIntersection extends Set {
 		val loc_curr_set_head = 0
 		val loc_curr_set_type = 1
 		def set_curr_set_head (head: Rep[Int]) = {
-			uncheckedPure[Unit] (curr_set_info, "( ", loc_curr_set_head, " )",
+			uncheckedPure[Unit] (curr_set_info, "[ ", loc_curr_set_head, " ]",
 				" = ", head
 			)
 		}
 		def set_curr_set_type (typ: Rep[Int]) = {
-			uncheckedPure[Unit] (curr_set_info, "( ", loc_curr_set_type, " )",
+			uncheckedPure[Unit] (curr_set_info, "[ ", loc_curr_set_type, " ]",
 				" = ", typ
 			)
 		}
@@ -99,7 +99,7 @@ trait SetIntersection extends Set {
 			tmp.set_curr_set_head( next_set_start - size_bit_set_head )
 			tmp.set_curr_set_type( type_bit_set )
 		}
-		// a: bit set, b: bit set --> c
+		// a: bit set, b: bit set --> c: bit set 
 		// a and b are aligned before hand
 		def bit_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
@@ -110,17 +110,17 @@ trait SetIntersection extends Set {
 			// it discards the beginning and ending 0s
 			// set builder will count the total 1s
 			
-			val set_type = uncheckedPure[Int](
+			val set_len = uncheckedPure[Int](
           "simd_bitset_intersection((uint64_t *)", c, 
           ", ", c_start,
           ", (uint64_t *)", a, 
-          ", (uint64_t *)", a_start,
+          ", (uint64_t)", a_start,
           ", (uint64_t *)", b, 
-          ", (uint64_t *)", b_start,
+          ", (uint64_t)", b_start,
           ", (uint64_t)", len,
           ")"
         )
-			set_type
+			set_len
 		}
 
 		// a: uint set, b: bit set --> c
