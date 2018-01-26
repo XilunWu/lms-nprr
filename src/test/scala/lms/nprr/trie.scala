@@ -306,7 +306,7 @@ trait Trie extends MemPool with TrieBlock {
 			var offset = 0
 			// for debugging use 
 			val res_tuple = NewArray[Int](resultSchema.length)
-			val debug_output_tuple = 0
+			val debug_output_tuple = 1
 			val debug_output_rels_on_lv = 0
 			val debug_output_count = 1
 			var count = 0

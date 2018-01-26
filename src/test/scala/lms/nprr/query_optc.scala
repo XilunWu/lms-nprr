@@ -227,7 +227,7 @@ Query Interpretation = Compilation
       // allocate mem buffer = 256MB
       // mem usage ~64MB -> ~128MB
       // mem for result trie ???
-      val mem = new SimpleMemPool (1 << 30)
+      val mem = new SimpleMemPool (1 << 24)
 
       var start = 0
 
