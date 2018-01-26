@@ -392,6 +392,7 @@ trait Trie extends MemPool with TrieBlock {
 							concrete_set foreach_index { index =>
 								count += 1
 							}
+						}
 						else if (typ == set_const.type_bit_set) {
 							val concrete_set = tb.getBitSet
 							concrete_set foreach { x =>
