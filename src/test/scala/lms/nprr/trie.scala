@@ -308,6 +308,7 @@ trait Trie extends MemPool with TrieBlock {
 				val it_involved = iterators.filter (_.trie.schema contains resultSchema(lv))
 				val block_on_lv = it_involved map (_ getCurrBlockOnAttr resultSchema(lv))
 				val tb = TrieBlock (mem, start+offset)
+				// violating ordering of effect here in tb.build() function:
 				tb.build (block_on_lv)
 				offset += (tb getSize)
 				if (lv != resultSchema.length-1) {

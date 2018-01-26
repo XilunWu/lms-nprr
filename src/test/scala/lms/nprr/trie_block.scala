@@ -102,10 +102,11 @@ trait TrieBlock extends Set with SetIntersection{
 		}
 
 		def build (s: List[TrieBlock]): Rep[Int] = { 
+			val intersection = Intersection()
 			// if s.length == 1 ... else ...
 			// we don't support 1 relation join yet.
-			val a_set_type = s(0).getType: Rep[Int]
-			val b_set_type = s(1).getType: Rep[Int]
+			val a_set_type = s(0).getType
+			val b_set_type = s(1).getType
 			if (a_set_type == type_bit_set) { 
 				if (b_set_type == type_bit_set) {
 					intersection.setIntersection (s(0) getBitSet, s(1) getBitSet)
@@ -120,8 +121,9 @@ trait TrieBlock extends Set with SetIntersection{
 				}
 			}
 			// the result is stored in the tmp memory of object "intersection"
+			
 			s.tail.tail.foreach { tb =>
-				val next_set_type = tb.getType: Rep[Int]
+				val next_set_type = tb.getType
 				if (next_set_type == type_uint_set)
 					intersection.setIntersection(tb getUintSet)
 				else 
@@ -136,6 +138,7 @@ trait TrieBlock extends Set with SetIntersection{
 			)
 			// clear memory after building
 			intersection.clearMem
+			
 			getSize
 		}
 	}
