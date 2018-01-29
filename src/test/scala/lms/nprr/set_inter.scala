@@ -60,7 +60,8 @@ trait SetIntersection extends Set {
 			a_start: Rep[Int], b_start: Rep[Int], 
 			a_len: Rep[Int], b_len: Rep[Int],
 			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
-			0
+			// find the rare array and the freq array
+			(val freq, val rare) = if ()
 		}
 
 		def bit_inter (a: BitSet, b: BitSet): Rep[Unit] = {
@@ -89,6 +90,8 @@ trait SetIntersection extends Set {
 			// inter_helper returns the type of set.
 
 			// error: violating ordering of effect 
+			// Resolved: Can't define variable in object. 
+			// Ask: Why?
 			val next_set_start = 
 				tmp.get_curr_set_head + getCurrSetSize + size_bit_set_head
 			val c_set_len = bit_inter_helper (
