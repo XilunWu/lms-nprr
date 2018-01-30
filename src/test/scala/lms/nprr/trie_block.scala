@@ -87,7 +87,8 @@ trait TrieBlock extends Set with SetIntersection{
 			val sparse = 
 				if ( arr(end-1) - arr(begin) < set_const.BITS_IN_AVX_REG * (end - begin) ) false
 				else true
-		  if (sparse) {
+			val sparse_test = true
+		  if (sparse_test) {
 				mem (data+loc_trie_block_type) = type_uint_set
 				val set = UintSet(mem, set_data)
 				set.buildUintSet (arr, begin, end)

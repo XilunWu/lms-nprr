@@ -19,10 +19,13 @@ object set_const {
 	val type_bit_set = 1
 
 	// Set specific const
-	val BITS_PER_INT = 64
-	val BITS_IN_AVX_REG = 128 // or 256. It's also defined as macro in c header
-	val BITS_PER_INT_SHIFT = 6	
-	val BYTES_PER_INT = 8
+	val BITS_PER_INT = 32
+	val BITS_PER_WORD = 64
+	val BITS_IN_AVX_REG = 256 // or 128 for SSE2. It's also defined as macro in c header
+	val BITS_PER_INT_SHIFT = 5
+	val BITS_PER_WORD_SHIFT = 6
+	val BYTES_PER_INT = 4
+	val BYTES_PER_WORD = 8
 }
 // Index is the absolute addr of child set in memory pool
 
@@ -92,11 +95,11 @@ trait Set extends UncheckedOps {
 			var i = 0
 			val arr = NewArray[Int](getCard)
 			val num = unchecked[Int] (
-				"decode ((uint64_t *) ", arr, 
-				", (uint64_t *) ", mem, 
-				", (uint64_t) ", getData, 
-				", (uint64_t) ", getLen,
-				", (uint64_t) ", getMin,
+				"decode ((uint32_t *) ", arr, 
+				", (uint32_t *) ", mem, 
+				", (size_t) ", getData, 
+				", (size_t) ", getLen,
+				", (uint32_t) ", getMin,
 				")"
 			)
 			/*

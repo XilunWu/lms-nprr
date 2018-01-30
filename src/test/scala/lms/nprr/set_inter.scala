@@ -8,6 +8,8 @@ trait SetIntersection extends Set {
   // have to make them all case class to avoid violating 
   // ordering of effect. (not sure if case necessary but ....)
   // Can we make them object without violating effect order???
+
+	// Create a companion object TmpMem to hold constant???
 	case class TmpMem () {
 		val mem_size = 1 << 22
 		val mem = NewArray[Int](mem_size)  // may need be larger
@@ -51,17 +53,64 @@ trait SetIntersection extends Set {
 
 		def getCurrSetType = tmp.get_curr_set_type
 
+		def setCurrSet( head: Rep[Int] ) = { tmp.set_curr_set_head( head ) }
+
+		def setCurrSetType( typ: Rep[Int] ) = { tmp.set_curr_set_type( typ ) }
+		
 		// a: uint set, b: uint set
 		def uint_inter (a: UintSet, b: UintSet): Rep[Unit] = {
 			// if sparse, return BitSet
 			// else UintSet
+			val a_len = a.getLen
+			val b_len = b.getLen
+			val a_start = a.getData
+			val b_start = b.getData
+			val a_arr = a.getMem
+			val b_arr = b.getMem
+			// we don't do it in place for simplicity of code
+			// but this can be easily done
+			val c_arr = tmp.mem
+			// change size_uint_set_head to max of set head sizes possible,
+			// which is size_bit_set_head
+			val c_start = getCurrSet + getCurrSetSize + size_uint_set_head
+			val c_set_len = uint_inter_helper (
+				a_arr, b_arr, a_start, b_start, a_len, b_len, c_arr, c_start)
+			// write uint set head 
+			setCurrSet( c_start - size_uint_set_head )
+			setCurrSetType( type_uint_set )
+
 		}
 		def uint_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
 			a_len: Rep[Int], b_len: Rep[Int],
 			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
-			// find the rare array and the freq array
-			(val freq, val rare) = if ()
+			// find the rare array and the freq array?
+			// No, it's done in SIMDIntersection.
+			val c_len = uncheckedPure[Int]("SIMDIntersection(",
+				"(const uint64_t *) ", a, ", ",
+				"(size_t) ", a_start, ", ",
+				"(const uint64_t *) ", b, ", ",
+				"(size_t) ", b_start, ", ",
+				"(size_t) ", a_len, ", ",
+				"(size_t) ", b_len, ", ",
+				"(const uint64_t *) ", c, ", ",
+				"(size_t) ", c_start,
+				")"
+			)
+			c_len
+			/*
+				TODO: We do this step after testing all intersection parts
+
+			val range = ( c( c_start + c_len - 1 ) - c( c_start ) )
+			val sparse = 
+				if ( range > set_const.BITS_IN_AVX_REG * c_len ) true
+			  else false
+			if (sparse) {  // build uint set 
+
+			} else {  // build bit set 
+				// for test, we don't build bit set at this monent. 
+			}
+			*/
 		}
 
 		def bit_inter (a: BitSet, b: BitSet): Rep[Unit] = {
@@ -93,14 +142,14 @@ trait SetIntersection extends Set {
 			// Resolved: Can't define variable in object. 
 			// Ask: Why?
 			val next_set_start = 
-				tmp.get_curr_set_head + getCurrSetSize + size_bit_set_head
+				getCurrSet + getCurrSetSize + size_bit_set_head
 			val c_set_len = bit_inter_helper (
 				a_arr, b_arr, a_arr_start, b_arr_start, c_len, tmp.mem, next_set_start)
 
 			val c_min_offset = tmp.mem (next_set_start+loc_bit_set_min-size_bit_set_head)
 			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
-			tmp.set_curr_set_head( next_set_start - size_bit_set_head )
-			tmp.set_curr_set_type( type_bit_set )
+			setCurrSet( next_set_start - size_bit_set_head )
+			setCurrSetType( type_bit_set )
 		}
 		// a: bit set, b: bit set --> c: bit set 
 		// a and b are aligned before hand
