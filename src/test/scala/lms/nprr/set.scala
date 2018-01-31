@@ -134,19 +134,20 @@ trait Set extends UncheckedOps {
 				f (arr(i))
 				i += 1
 			}
+			// don't forget to free this mem
 		}
 
 		private def find_min_in_bitset (bit_arr: Rep[Int]) = {
 			uncheckedPure[Int](
-				"__builtin_clzll(",
-				"(uint64_t) ", bit_arr,
+				"__builtin_clzl(",
+				"(uint32_t) ", bit_arr,
 				")"
 			)
 		}
 		private def find_max_in_bitset (bit_arr: Rep[Int]) = {
 			val tzeros = uncheckedPure[Int](
-				"__builtin_ctzll(",
-				"(uint64_t) ", bit_arr,
+				"__builtin_ctzl(",
+				"(uint32_t) ", bit_arr,
 				")"
 			)
 			val max = BITS_PER_INT - tzeros - 1
@@ -186,7 +187,7 @@ trait Set extends UncheckedOps {
 			def searchInRange (begin: Rep[Int], end: Rep[Int]): Rep[Int] = {
 				var b = begin
 				var e = end
-				while (e - b >= 5) {	
+				while (e >= b + 5) {	
 					val pivot = (b + e) / 2
 					if (mem(addr+pivot) == key) {
 						b = pivot

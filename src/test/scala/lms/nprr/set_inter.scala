@@ -56,7 +56,7 @@ trait SetIntersection extends Set {
 		def setCurrSet( head: Rep[Int] ) = { tmp.set_curr_set_head( head ) }
 
 		def setCurrSetType( typ: Rep[Int] ) = { tmp.set_curr_set_type( typ ) }
-		
+
 		// a: uint set, b: uint set
 		def uint_inter (a: UintSet, b: UintSet): Rep[Unit] = {
 			// if sparse, return BitSet
@@ -86,18 +86,21 @@ trait SetIntersection extends Set {
 			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
 			// find the rare array and the freq array?
 			// No, it's done in SIMDIntersection.
+			/*
 			val c_len = uncheckedPure[Int]("SIMDIntersection(",
-				"(const uint64_t *) ", a, ", ",
+				"(const uint32_t *) ", a, ", ",
 				"(size_t) ", a_start, ", ",
-				"(const uint64_t *) ", b, ", ",
+				"(const uint32_t *) ", b, ", ",
 				"(size_t) ", b_start, ", ",
 				"(size_t) ", a_len, ", ",
 				"(size_t) ", b_len, ", ",
-				"(const uint64_t *) ", c, ", ",
+				"(const uint32_t *) ", c, ", ",
 				"(size_t) ", c_start,
 				")"
 			)
 			c_len
+			*/
+			0
 			/*
 				TODO: We do this step after testing all intersection parts
 
@@ -163,13 +166,14 @@ trait SetIntersection extends Set {
 			// set builder will count the total 1s
 			
 			val set_len = uncheckedPure[Int](
-          "simd_bitset_intersection((uint64_t *)", c, 
+          "simd_bitset_intersection(", 
+          "(uint32_t *)", c, 
           ", ", c_start,
-          ", (uint64_t *)", a, 
-          ", (uint64_t)", a_start,
-          ", (uint64_t *)", b, 
-          ", (uint64_t)", b_start,
-          ", (uint64_t)", len,
+          ", (uint32_t *)", a, 
+          ", (size_t)", a_start,
+          ", (uint32_t *)", b, 
+          ", (size_t)", b_start,
+          ", (size_t)", len,
           ")"
         )
 			set_len

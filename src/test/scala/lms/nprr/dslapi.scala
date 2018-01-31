@@ -42,7 +42,7 @@ trait CGenUtilOps extends CGenBase {
   }
 }
 
-
+// we add Long support here
 trait Dsl extends PrimitiveOps with NumericOps with MathOps with BooleanOps with LiftString with LiftPrimitives with LiftNumeric with LiftBoolean with IfThenElse with Equal with RangeOps with OrderingOps with MiscOps with ArrayOps with StringOps with SeqOps with Functions with While with StaticData with Variables with LiftVariables with ObjectOps with UtilOps with CastingOps{
   implicit def repStrToSeqOps(a: Rep[String]) = new SeqOpsCls(a.asInstanceOf[Rep[Seq[Char]]])
   override def infix_&&(lhs: Rep[Boolean], rhs: => Rep[Boolean])(implicit pos: scala.reflect.SourceContext): Rep[Boolean] =
@@ -308,9 +308,8 @@ trait DslGenC extends CGenNumericOps
             m_a = _mm256_and_ps(m_a, m_b);
 
             // separate r into 8 uint32_t
-            // const __m256i m_ai = _mm256_cvtps_epi32(m_a);                                                                                             
             for(int index = 0; index < 8; ++index) {
-              uint64_t c = _mm256_extract_epi64((__m256i)m_a, index);                
+              uint32_t c = _mm256_extract_epi32((__m256i)m_a, index);                
               if (flag == false && c != 0) {
                 flag = true;
                 start = i+index;
@@ -318,15 +317,15 @@ trait DslGenC extends CGenNumericOps
               if (flag == true) {
                 if (c != 0) {
                   last_non_zero = curr;
-                  count += __builtin_popcountll(c);
+                  count += __builtin_popcountl(c);
                 } 
                 output[curr++] = c;
               }
             }
-            i += 4;
+            i += 8;
         }
         while (i < len) {
-            uint64_t c = a_in[i];
+            uint32_t c = a_in[i];
             c &= b_in[i];
 
             if (flag == false && c != 0)  {
@@ -336,7 +335,7 @@ trait DslGenC extends CGenNumericOps
             if (flag == true) {
               if (c != 0) {
                 last_non_zero = curr;
-                count += __builtin_popcountll(c);
+                count += __builtin_popcountl(c);
               } 
               output[curr++] = c;
             }
@@ -349,11 +348,11 @@ trait DslGenC extends CGenNumericOps
         *(output - 1) = start;
         return res_len;
       }
-      inline uint64_t simd_bitset_intersection(uint64_t * output, uint64_t o_start, uint64_t * a_in, uint64_t a_start, uint64_t * b_in, uint64_t b_start, uint64_t len) {
+      inline uint32_t simd_bitset_intersection(uint32_t * output, size_t o_start, uint32_t * a_in, size_t a_start, uint32_t * b_in, size_t b_start, size_t len) {
         return simd_bitset_intersection_helper(&output[o_start], &a_in[a_start], &b_in[b_start], len);
       }
 
-      inline uint64_t decode2(uint32_t* vec, uint32_t *bitmap, size_t len, uint32_t min) {
+      inline uint32_t decode2(uint32_t* vec, uint32_t *bitmap, size_t len, uint32_t min) {
           size_t i = 0;
           size_t count = 0;
           while (i < len) {
@@ -369,7 +368,7 @@ trait DslGenC extends CGenNumericOps
           }
           return count;
       }
-      inline uint64_t decode(uint32_t* vec, uint32_t *bitmap, size_t start, size_t len, uint32_t min) {
+      inline uint32_t decode(uint32_t* vec, uint32_t *bitmap, size_t start, size_t len, uint32_t min) {
         return decode2(vec, &bitmap[start], len, min);
       }
       """)

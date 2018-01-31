@@ -293,7 +293,9 @@ trait Trie extends MemPool with TrieBlock {
 		val resultSchema: Vector[String]
 
 		def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int]
+		def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int]
 	}
+
 	class SimpleTrieBuilder (
 		val tries: List[Trie],
 		val schemas: List[Vector[String]],
@@ -401,6 +403,71 @@ trait Trie extends MemPool with TrieBlock {
 						}
 					}
 					unit() 
+				}
+			}
+
+			// init: put iterators on attribute schema(0) at position
+			iterators foreach (_.init)
+			buildSubTrie(0)
+			if (debug_output_count == 1) println(count)
+			offset
+		}
+		override def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
+			var offset = 0
+			// for debugging use 
+			val res_tuple = NewArray[Int](resultSchema.length)
+			val debug_output_rels_on_lv = 0
+			val debug_output_count = 1
+			var count = 0l
+
+			def buildSubTrie (lv:Int): Rep[Unit] = {
+				if (debug_output_rels_on_lv == 1) {
+					print("lv = "); print(lv); println(", relations on lv are:")
+					iterators.filter( it => 
+						it.trie.schema contains resultSchema( lv ) ).foreach { it =>
+						print(iterators indexOf it); print("\t")
+					}
+					println("")
+				}
+				val attr = resultSchema( lv )
+				val it_involved = iterators.filter (_.trie.schema contains attr)
+				val block_on_lv = it_involved map (_ getCurrBlockOnAttr attr)
+				val tb = TrieBlock (mem, start+offset)
+				tb.build_aggregate_null (block_on_lv)
+				offset += (tb getSizeWithNoIndex)
+				if (lv != resultSchema.length-1) {
+					val typ = tb.getType
+					if (typ == set_const.type_uint_set) {
+						val concrete_set = tb.getUintSet
+						concrete_set foreach_index { index =>
+							// debug 
+							val x = concrete_set getKeyByIndex index
+							res_tuple(lv) = x
+							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
+							buildSubTrie(lv+1)
+						}
+					}
+					else if (typ == set_const.type_bit_set) {
+						val concrete_set = tb.getBitSet
+						concrete_set foreach { x =>
+							// debug 
+							res_tuple(lv) = x
+							it_involved foreach { it => it.setChildBlock (attr, x) }
+							buildSubTrie(lv+1)
+						}
+					}
+				} else {  // for debug use 
+					val typ = tb.getType
+					if (typ == set_const.type_uint_set) {
+						val concrete_set = tb.getUintSet
+						count += int_tolong( concrete_set.getCard )
+						println(count)
+					}
+					else if (typ == set_const.type_bit_set) {
+						val concrete_set = tb.getBitSet
+						count += int_tolong( concrete_set.getCard )
+						println(count)
+					}
 				}
 			}
 

@@ -25,6 +25,15 @@ trait TrieBlock extends Set with SetIntersection{
 		val set_data = data+size_of_trie_block_head
 
 		def getType = mem(data+loc_trie_block_type)
+		def getSizeWithNoIndex = {
+			if (getType == type_uint_set) {
+				val uintset = UintSet(mem, set_data)
+				size_of_trie_block_head + uintset.getSize
+			} else { // type_bit_set
+				val bitset = BitSet(mem, set_data)
+				size_of_trie_block_head + bitset.getSize
+			}
+		}
 		def getSize = {
 			if (getType == type_uint_set) {
 				val uintset = UintSet(mem, set_data)
@@ -87,7 +96,7 @@ trait TrieBlock extends Set with SetIntersection{
 			val sparse = 
 				if ( arr(end-1) - arr(begin) < set_const.BITS_IN_AVX_REG * (end - begin) ) false
 				else true
-			val sparse_test = true
+			val sparse_test = false
 		  if (sparse_test) {
 				mem (data+loc_trie_block_type) = type_uint_set
 				val set = UintSet(mem, set_data)
@@ -140,6 +149,52 @@ trait TrieBlock extends Set with SetIntersection{
 			
 			getSize
 		}
+
+		// no furthur operation on this result so we only count.
+		def build_aggregate_null (s: List[TrieBlock]): Rep[Long] = { 
+			var count = 0l
+			val intersection = Intersection()
+			// if s.length == 1 ... else ...
+			// we don't support 1 relation join yet.
+			val a_set_type = s(0).getType
+			val b_set_type = s(1).getType
+			if (a_set_type == type_bit_set) { 
+				if (b_set_type == type_bit_set) {
+					intersection.setIntersection (s(0) getBitSet, s(1) getBitSet)
+				} else {
+					intersection.setIntersection (s(1) getUintSet, s(0) getUintSet)
+				}
+			} else { // uintset
+				if (b_set_type == type_bit_set) {
+					intersection.setIntersection (s(0) getUintSet, s(1) getBitSet)
+				} else {
+					intersection.setIntersection (s(0) getUintSet, s(1) getUintSet)
+				}
+			}
+			// the result is stored in the tmp memory of object "intersection"
+			
+			s.tail.tail.foreach { tb =>
+				val next_set_type = tb.getType
+				if (next_set_type == type_uint_set)
+					intersection.setIntersection(tb getUintSet)
+				else 
+					intersection.setIntersection(tb getBitSet)
+			}
+			// This can be done differently. we don't copy data.
+			// copy the tmp set into mem
+			mem(data+loc_trie_block_type) = intersection.getCurrSetType
+			memcpy (
+				mem, data+size_of_trie_block_head, 
+				intersection.getMem, intersection.getCurrSet, 
+				intersection.getCurrSetSize
+			)
+
+			// clear memory after building
+			intersection.clearMem
+			
+			count
+		}
+
 	}
 }
 

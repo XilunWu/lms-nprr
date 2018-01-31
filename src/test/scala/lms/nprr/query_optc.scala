@@ -256,7 +256,7 @@ Query Interpretation = Compilation
 
       // violated ordering of effect error here:
       // Build the result trie
-      val tb_size = tb.build (mem.mem, start)
+      val tb_size = tb.build_aggregate_null (mem.mem, start)
 
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // we need add trie header

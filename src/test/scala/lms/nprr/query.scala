@@ -223,10 +223,6 @@ trait ExpectedASTs extends QueryAST {
   val count_t = NprrJoin(List(edge_0_1, edge_0_2, edge_1_2),
     Schema("0", "1", "2"))(_)
 
-  val s_fb_edge_0_1 =  Scan("short_facebook_duplicated01.tsv", Some(Schema("0","1")), Some('\t'))
-  val s_fb_edge_0_2 =  Scan("short_facebook_duplicated02.tsv", Some(Schema("0","2")), Some('\t'))
-  val s_fb_edge_1_2 =  Scan("short_facebook_duplicated12.tsv", Some(Schema("1","2")), Some('\t'))
-
   val fb_edge_0_1 =  Scan("facebook_duplicated01.tsv", Some(Schema("0","1")), Some('\t'))
   val fb_edge_0_2 =  Scan("facebook_duplicated02.tsv", Some(Schema("0","2")), Some('\t'))
   val fb_edge_1_2 =  Scan("facebook_duplicated12.tsv", Some(Schema("1","2")), Some('\t'))
@@ -239,8 +235,6 @@ trait ExpectedASTs extends QueryAST {
     Schema("0", "1", "2"), 1)*/
   val test = Count(NprrJoin(List(edge_0_1),
     Schema("0", "1"), 1))
-  val s_fb_test = Count(NprrJoin(List(s_fb_edge_0_1, s_fb_edge_0_2, s_fb_edge_1_2),
-    Schema("0", "1", "2"), 1))
   val fb_test = Count(NprrJoin(List(fb_edge_0_1, fb_edge_0_2, fb_edge_1_2),
     Schema("0", "1", "2"), 1))
   val gplus_test = Count(NprrJoin(List(gplus_edge_0_1, gplus_edge_0_2, gplus_edge_1_2),
