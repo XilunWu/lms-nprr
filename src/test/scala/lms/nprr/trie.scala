@@ -412,70 +412,60 @@ trait Trie extends MemPool with TrieBlock {
 			if (debug_output_count == 1) println(count)
 			offset
 		}
-		override def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
-			var offset = 0
-			// for debugging use 
-			val res_tuple = NewArray[Int](resultSchema.length)
-			val debug_output_rels_on_lv = 0
-			val debug_output_count = 1
-			var count = 0l
 
-			def buildSubTrie (lv:Int): Rep[Unit] = {
-				if (debug_output_rels_on_lv == 1) {
-					print("lv = "); print(lv); println(", relations on lv are:")
-					iterators.filter( it => 
-						it.trie.schema contains resultSchema( lv ) ).foreach { it =>
-						print(iterators indexOf it); print("\t")
-					}
-					println("")
-				}
+		// For now, this method only does counting job but it can be easily
+		// converted with adding a function parameter
+		override def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Long] = {
+			// we don't produce any new trie in this method
+			// so there's no offset
+			// Logic:
+			// 1. Since we don't need build the result trie (we only do aggregate)
+			// we do aggregate on each subtrie and sum them together.
+			// 2. For the last level, we just do aggregate so we don't even need 
+			// restore bit set back to int set. We just need the count (for counting queries)
+			var offset = 0
+
+			def buildSubTrie (lv:Int): Rep[Long] = {
+				var count = 0l
+
 				val attr = resultSchema( lv )
-				val it_involved = iterators.filter (_.trie.schema contains attr)
-				val block_on_lv = it_involved map (_ getCurrBlockOnAttr attr)
-				val tb = TrieBlock (mem, start+offset)
-				tb.build_aggregate_null (block_on_lv)
-				offset += (tb getSizeWithNoIndex)
-				if (lv != resultSchema.length-1) {
-					val typ = tb.getType
-					if (typ == set_const.type_uint_set) {
-						val concrete_set = tb.getUintSet
-						concrete_set foreach_index { index =>
-							// debug 
-							val x = concrete_set getKeyByIndex index
-							res_tuple(lv) = x
-							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
-							buildSubTrie(lv+1)
-						}
+				val it_involved = iterators.filter( _.trie.schema contains attr )
+				val block_on_lv = it_involved map ( _ getCurrBlockOnAttr attr )
+				if ( lv != resultSchema.length - 1 ) {
+					// we need output the intersection in Uint Array format.
+				  // let's do this in the MemPool with that of Tries.
+					val tb = TrieBlock( mem, start+offset )
+					// this method will return the memory used by new trie block.
+					val offset_before_build = readVar( offset )
+					offset += tb.build_aggregate_nonleaf( block_on_lv )
+					// Since it's always in Uint Array format, we don't do the
+					// judgement of its type.
+					val uintset = tb.getUintSet
+					uintset foreach { x => 
+						it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
+						count += buildSubTrie( lv + 1 )
 					}
-					else if (typ == set_const.type_bit_set) {
-						val concrete_set = tb.getBitSet
-						concrete_set foreach { x =>
-							// debug 
-							res_tuple(lv) = x
-							it_involved foreach { it => it.setChildBlock (attr, x) }
-							buildSubTrie(lv+1)
-						}
-					}
-				} else {  // for debug use 
-					val typ = tb.getType
-					if (typ == set_const.type_uint_set) {
-						val concrete_set = tb.getUintSet
-						count += int_tolong( concrete_set.getCard )
-						println(count)
-					}
-					else if (typ == set_const.type_bit_set) {
-						val concrete_set = tb.getBitSet
-						count += int_tolong( concrete_set.getCard )
-						println(count)
-					}
+					// after this is done, restore the offset. 
+					// this is like a stack
+					offset = offset_before_build
+				} else {
+					// This can be refactored into an object.
+					val tb = TrieBlock( mem, start+offset )
+					// we don't actually build set but only count those 1's
+					// for bitset and number of ints for uint set.
+					count += tb.build_aggregate_leaf( block_on_lv )
 				}
+				readVar( count )
 			}
 
 			// init: put iterators on attribute schema(0) at position
 			iterators foreach (_.init)
 			buildSubTrie(0)
-			if (debug_output_count == 1) println(count)
-			offset
+			// when this is done, all memory (start ~ start + offset)
+			// taken becomes free.
+
+			// return the count of tuples
+			count
 		}
 	}
 }

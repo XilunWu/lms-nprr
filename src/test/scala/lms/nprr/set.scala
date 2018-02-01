@@ -92,6 +92,8 @@ trait Set extends UncheckedOps {
 		}
 
 		def foreach (f: Rep[Int] => Rep[Unit]): Rep[Unit] = {
+			// allocate array for each set is inefficient
+			// we can use temp array or ...
 			var i = 0
 			val arr = NewArray[Int](getCard)
 			val num = unchecked[Int] (

@@ -151,11 +151,21 @@ trait TrieBlock extends Set with SetIntersection{
 		}
 
 		// no furthur operation on this result so we only count.
-		def build_aggregate_null (s: List[TrieBlock]): Rep[Long] = { 
+		// for nonleaf set we still to do foreach so we put them
+		// in an uint array
+		def build_aggregate_nonleaf (s: List[TrieBlock]): Rep[Long] = { 
 			var count = 0l
 			val intersection = Intersection()
 			// if s.length == 1 ... else ...
 			// we don't support 1 relation join yet.
+			// Hint: when to output the result trie???
+			// 			 can they be done in place???
+			s.length match {
+				case 0 =>
+				case 1 =>
+				case 2 =>
+
+			}
 			val a_set_type = s(0).getType
 			val b_set_type = s(1).getType
 			if (a_set_type == type_bit_set) { 
@@ -172,7 +182,7 @@ trait TrieBlock extends Set with SetIntersection{
 				}
 			}
 			// the result is stored in the tmp memory of object "intersection"
-			
+			val last_trie = s.
 			s.tail.tail.foreach { tb =>
 				val next_set_type = tb.getType
 				if (next_set_type == type_uint_set)
