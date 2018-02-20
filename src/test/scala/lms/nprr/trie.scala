@@ -107,7 +107,7 @@ trait Trie extends MemPool with TrieBlock {
 				val tb = TrieBlock (mem.mem, data+offset)
 				tb.buildFromRawData (arr, begin, end)
 				// val t_block = tb.buildTrieBlock (arr, begin, end)
-				offset += (tb getSize)
+				offset += (tb getBlockSize)
 				if (lv != schema.length-1) {
 					var index = begin
 					while (index < end) {
@@ -146,7 +146,7 @@ trait Trie extends MemPool with TrieBlock {
 			print("data: "); println(bitset.data)
 			println("")
 		}
-
+		/*
 		def dumpTrie = {
 			val dump_set_info = false
 			val dump_set_elem = false 
@@ -257,6 +257,7 @@ trait Trie extends MemPool with TrieBlock {
 			val tb = TrieBlock(mem.mem, data)
 			printSubTrie (tb, 0)
 		}
+		*/
 	}
 	/*
 	class PrefixTrie extends Trie {}
@@ -292,18 +293,19 @@ trait Trie extends MemPool with TrieBlock {
 		val schemas: List[Vector[String]]
 		val resultSchema: Vector[String]
 
-		def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int]
-		def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int]
+		// def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int]
+		// def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Long]
 	}
 
 	class SimpleTrieBuilder (
 		val tries: List[Trie],
 		val schemas: List[Vector[String]],
-		val resultSchema: Vector[String]
+		val resultSchema: Vector[String],
+		val mempool: SimpleMemPool
 	) extends TrieBuilder {
-
+		var offset = 0
 		val iterators = tries.map(new TrieIterator(_))
-
+/*
 		override def build (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
 			var offset = 0
 			// for debugging use 
@@ -412,10 +414,10 @@ trait Trie extends MemPool with TrieBlock {
 			if (debug_output_count == 1) println(count)
 			offset
 		}
-
+*/
 		// For now, this method only does counting job but it can be easily
 		// converted with adding a function parameter
-		override def build_aggregate_null (mem: Rep[Array[Int]], start: Rep[Int]): Rep[Long] = {
+		def build_aggregate_null: Rep[Long] = {
 			// we don't produce any new trie in this method
 			// so there's no offset
 			// Logic:
@@ -423,18 +425,17 @@ trait Trie extends MemPool with TrieBlock {
 			// we do aggregate on each subtrie and sum them together.
 			// 2. For the last level, we just do aggregate so we don't even need 
 			// restore bit set back to int set. We just need the count (for counting queries)
-			var offset = 0
+			var count = 0l
 
 			def buildSubTrie (lv:Int): Rep[Long] = {
-				var count = 0l
-
+				val mem = mempool.mem
 				val attr = resultSchema( lv )
 				val it_involved = iterators.filter( _.trie.schema contains attr )
 				val block_on_lv = it_involved map ( _ getCurrBlockOnAttr attr )
 				if ( lv != resultSchema.length - 1 ) {
 					// we need output the intersection in Uint Array format.
 				  // let's do this in the MemPool with that of Tries.
-					val tb = TrieBlock( mem, start+offset )
+					val tb = TrieBlock( mem, offset )
 					// this method will return the memory used by new trie block.
 					val offset_before_build = readVar( offset )
 					offset += tb.build_aggregate_nonleaf( block_on_lv )
@@ -450,7 +451,7 @@ trait Trie extends MemPool with TrieBlock {
 					offset = offset_before_build
 				} else {
 					// This can be refactored into an object.
-					val tb = TrieBlock( mem, start+offset )
+					val tb = TrieBlock( mem, offset )
 					// we don't actually build set but only count those 1's
 					// for bitset and number of ints for uint set.
 					count += tb.build_aggregate_leaf( block_on_lv )

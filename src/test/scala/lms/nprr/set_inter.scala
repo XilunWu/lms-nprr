@@ -9,56 +9,17 @@ trait SetIntersection extends Set {
   // ordering of effect. (not sure if case necessary but ....)
   // Can we make them object without violating effect order???
 
-	// Create a companion object TmpMem to hold constant???
-	case class TmpMem () {
-		val mem_size = 1 << 22
-		val mem = NewArray[Int](mem_size)  // may need be larger
-		val curr_set_info = NewArray[Int](2)
-		val loc_curr_set_head = 0
-		val loc_curr_set_type = 1
-		def set_curr_set_head (head: Rep[Int]) = {
-			uncheckedPure[Unit] (curr_set_info, "[ ", loc_curr_set_head, " ]",
-				" = ", head
-			)
-		}
-		def set_curr_set_type (typ: Rep[Int]) = {
-			uncheckedPure[Unit] (curr_set_info, "[ ", loc_curr_set_type, " ]",
-				" = ", typ
-			)
-		}
-		def get_curr_set_head = curr_set_info (loc_curr_set_head )
-		def get_curr_set_type = curr_set_info (loc_curr_set_type )
-	}
+	import set_const._
 
-	case class Intersection () {
-		import set_const._
+	object intersection {
 
-		val tmp = TmpMem()
-
-		def clearMem = { 
-			// free mem and curr_set_info
-		}
-
-		def getMem = tmp.mem
-
-		def getCurrSet = tmp.get_curr_set_head
-
-		def getCurrSetSize = {
-			if (getCurrSetType == type_uint_set) 
-				size_uint_set_head + tmp.mem( tmp.get_curr_set_head + loc_uint_set_len )
-			else {  //type_bit_set
-				size_bit_set_head + tmp.mem( tmp.get_curr_set_head + loc_bit_set_len )
-			}
-		}
-
-		def getCurrSetType = tmp.get_curr_set_type
-
-		def setCurrSet( head: Rep[Int] ) = { tmp.set_curr_set_head( head ) }
-
-		def setCurrSetType( typ: Rep[Int] ) = { tmp.set_curr_set_type( typ ) }
-
+		// Here starts UintSet * UintSet Intersection
 		// a: uint set, b: uint set
-		def uint_inter (a: UintSet, b: UintSet): Rep[Unit] = {
+		def uint_inter (a: UintSet, b: UintSet): Rep[Long] = {
+			0l
+		}
+
+		def uint_inter (a: UintSet, b: UintSet, c_arr: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {
 			// if sparse, return BitSet
 			// else UintSet
 			val a_len = a.getLen
@@ -67,18 +28,9 @@ trait SetIntersection extends Set {
 			val b_start = b.getData
 			val a_arr = a.getMem
 			val b_arr = b.getMem
-			// we don't do it in place for simplicity of code
-			// but this can be easily done
-			val c_arr = tmp.mem
-			// change size_uint_set_head to max of set head sizes possible,
-			// which is size_bit_set_head
-			val c_start = getCurrSet + getCurrSetSize + size_uint_set_head
-			val c_set_len = uint_inter_helper (
+			val c_set_size = uint_inter_helper (
 				a_arr, b_arr, a_start, b_start, a_len, b_len, c_arr, c_start)
-			// write uint set head 
-			setCurrSet( c_start - size_uint_set_head )
-			setCurrSetType( type_uint_set )
-
+			c_set_size
 		}
 		def uint_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
@@ -116,7 +68,36 @@ trait SetIntersection extends Set {
 			*/
 		}
 
-		def bit_inter (a: BitSet, b: BitSet): Rep[Unit] = {
+		// Here starts BitSet * BitSet Intersection
+
+		def bit_inter (a: BitSet, b: BitSet): Rep[Long] = {
+			// basically the same code but call different c routine. 
+			// same c routine can be used
+			val a_len = a.getLen
+			val b_len = b.getLen
+			val a_min = a.getMin
+			val b_min = b.getMin
+			val a_start = a_min >>> BITS_PER_INT_SHIFT
+			val b_start = b_min >>> BITS_PER_INT_SHIFT
+			
+			val c_start = if ( a_start > b_start ) a_start else b_start
+			val c_len = 
+				if ( a_start + a_len > b_start + b_len ) 
+					b_start + b_len - c_start
+				else 
+					a_start + a_len - c_start
+			val c_min = c_start << BITS_PER_INT_SHIFT
+			val a_arr = a.getMem
+			val a_arr_start = a.getData + c_start - a_start
+			val b_arr = b.getMem
+			val b_arr_start = b.getData + c_start - b_start
+
+			val c_set_card = bit_inter_aggregate_helper (
+				a_arr, b_arr, a_arr_start, b_arr_start, c_len)
+			c_set_card
+		}
+
+		def bit_inter (a: BitSet, b: BitSet, c_arr: Rep[Array[Int]], c_addr: Rep[Int]): Rep[Int] = {
 			val a_len = a.getLen
 			val b_len = b.getLen
 			val a_min = a.getMin
@@ -144,15 +125,13 @@ trait SetIntersection extends Set {
 			// error: violating ordering of effect 
 			// Resolved: Can't define variable in object. 
 			// Ask: Why?
-			val next_set_start = 
-				getCurrSet + getCurrSetSize + size_bit_set_head
-			val c_set_len = bit_inter_helper (
-				a_arr, b_arr, a_arr_start, b_arr_start, c_len, tmp.mem, next_set_start)
+			// Answer: It's about scoping. We must make sure the variable doesn't escape the scope.
+			val c_set_size = bit_inter_helper (
+				a_arr, b_arr, a_arr_start, b_arr_start, c_len, c_arr, c_addr)
 
-			val c_min_offset = tmp.mem (next_set_start+loc_bit_set_min-size_bit_set_head)
+			val c_min_offset = BitSet(c_arr, c_addr).getMin
 			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
-			setCurrSet( next_set_start - size_bit_set_head )
-			setCurrSetType( type_bit_set )
+			c_set_size
 		}
 		// a: bit set, b: bit set --> c: bit set 
 		// a and b are aligned before hand
@@ -165,7 +144,7 @@ trait SetIntersection extends Set {
 			// it discards the beginning and ending 0s
 			// set builder will count the total 1s
 			
-			val set_len = uncheckedPure[Int](
+			val set_size = uncheckedPure[Int](
           "simd_bitset_intersection(", 
           "(uint32_t *)", c, 
           ", ", c_start,
@@ -176,47 +155,88 @@ trait SetIntersection extends Set {
           ", (size_t)", len,
           ")"
         )
-			set_len
+			set_size
 		}
 
-		// a: uint set, b: bit set --> c
-		def uint_bit_inter (a: UintSet, b: BitSet): Rep[Unit] = {
+		def bit_inter_aggregate_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
+			a_start: Rep[Int], b_start: Rep[Int], 
+			len: Rep[Int]): Rep[Long] = {  
+			// we only test count: return cardinality
+
+			// simd_bitset_intersection returns the len of the bit array
+			// it discards the beginning and ending 0s
+			// set builder will count the total 1s
+			
+			val set_card = uncheckedPure[Long](
+          "simd_bitset_intersection_count(", 
+          "(uint32_t *)", a, 
+          ", (size_t)", a_start,
+          ", (uint32_t *)", b, 
+          ", (size_t)", b_start,
+          ", (size_t)", len,
+          ")"
+        )
+			set_card
 		}
+
+		// Here starts UintSet * BitSet Intersection
+		// a: uint set, b: bit set --> c
+		def uint_bit_inter (a: UintSet, b: BitSet): Rep[Long] = {
+			0l
+		}
+		def uint_bit_inter (a: UintSet, b: BitSet, c_arr: Rep[Array[Int]], c_addr: Rep[Int]): Rep[Int] = {
+			0
+		}
+
 		def uint_bit_inter_helper (a: Rep[Array[Int]], b: Rep[Array[Int]], 
 			a_start: Rep[Int], b_start: Rep[Int], 
 			a_len: Rep[Int], b_len: Rep[Int],
-			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  // return cardinality
+			c: Rep[Array[Int]], c_start: Rep[Int]): Rep[Int] = {  
 			0
 		}
 
 		// result set is stored in
 		// BitSet X BitSet = BitSet
-		def setIntersection (a: BitSet, b: BitSet): Rep[Unit] = {
+		def setIntersection (a: BitSet, b: BitSet): Rep[Long] = {
 			bit_inter(a, b)
 		}
 
 		// UintSet X BitSet = UintSet
-		def setIntersection (a: UintSet, b: BitSet): Rep[Unit] = {
+		def setIntersection (a: UintSet, b: BitSet): Rep[Long] = {
 			uint_bit_inter(a, b)
 		}
 
 		// UintSet X UintSet = BitSet or UintSet
-		def setIntersection (a: UintSet, b: UintSet): Rep[Unit] = {
+		def setIntersection (a: UintSet, b: UintSet): Rep[Long] = {
 			uint_inter(a, b)
 		}
 
-		def setIntersection (a: BitSet): Rep[Unit] = { 
+		def setIntersection (a: BitSet, b: BitSet, mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
+			bit_inter(a, b, mem, start)
+		}
+
+		// UintSet X BitSet = UintSet
+		def setIntersection (a: UintSet, b: BitSet, mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
+			uint_bit_inter(a, b, mem, start)
+		}
+
+		// UintSet X UintSet = BitSet or UintSet
+		def setIntersection (a: UintSet, b: UintSet, mem: Rep[Array[Int]], start: Rep[Int]): Rep[Int] = {
+			uint_inter(a, b, mem, start)
+		}
+/*
+		def setIntersection (a: BitSet): Rep[Long] = { 
 			if (getCurrSetType == type_uint_set) 
 				setIntersection (UintSet(tmp.mem, tmp.get_curr_set_head), a)
 			else // type_bit_set
 				setIntersection (BitSet(tmp.mem, tmp.get_curr_set_head), a)
 		}
-		def setIntersection (a: UintSet): Rep[Unit] = { 
+		def setIntersection (a: UintSet): Rep[Long] = { 
 			if (getCurrSetType == type_uint_set) 
 				setIntersection (UintSet(tmp.mem, tmp.get_curr_set_head), a)
 			else // type_bit_set
 				setIntersection (a, BitSet(tmp.mem, tmp.get_curr_set_head))
 		}
-		
+*/		
 	}
 }

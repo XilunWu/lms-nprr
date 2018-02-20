@@ -2,21 +2,26 @@ package scala.lms.nprr
 
 import scala.lms.common._
 
+// How to make Rep Enum?
+object SetType {
+	val UintSet = 0
+	val BitSet = 1
+}
+
 object set_const {
 	// Set head
-	// UintSet: len
-	// BitSet: len, card, min
-	val loc_uint_set_len = 0
-	val loc_bit_set_len = 0
-	val loc_bit_set_card = 1
-	val loc_bit_set_min = 2
+	// UintSet: typ, len
+	// BitSet: typ, len, card, min
+	val loc_set_type = 0
 
-	val size_uint_set_head = 1
-	val size_bit_set_head = 3
+	val loc_uint_set_len = 1
 
-	// Set type
-	val type_uint_set = 0
-	val type_bit_set = 1
+	val loc_bit_set_len = 1
+	val loc_bit_set_card = 2
+	val loc_bit_set_min = 3
+
+	val size_uint_set_head = 2
+	val size_bit_set_head = 4
 
 	// Set specific const
 	val BITS_PER_INT = 32
@@ -42,6 +47,10 @@ trait Set extends UncheckedOps {
 			"(size_t) ", BYTES_PER_INT*len, ")"
 		)
 	}
+	object set {
+		def getSetType (mem: Rep[Array[Int]], data: Rep[Int]) = mem(data + loc_set_type)
+		def setSetType (mem: Rep[Array[Int]], data: Rep[Int], typ: Rep[Int]) = { mem(data + loc_set_type) = typ }
+	}
 
 	case class BitSet (
 		mem: Rep[Array[Int]], 
@@ -61,7 +70,8 @@ trait Set extends UncheckedOps {
 
 		def buildBitSet (arr: Rep[Array[Int]],
 		 begin: Rep[Int], end: Rep[Int]) = {
-			mem(data+loc_bit_set_card) = end - begin
+		 	mem( data + loc_set_type ) = SetType.BitSet
+			mem( data + loc_bit_set_card ) = end - begin
 			val min = (arr(begin) >>> BITS_PER_INT_SHIFT) << BITS_PER_INT_SHIFT
 			val max = arr(end - 1)
 			mem(data+loc_bit_set_len) = ((max - min) >>> BITS_PER_INT_SHIFT) + 1
@@ -162,14 +172,13 @@ trait Set extends UncheckedOps {
 		data: Rep[Int]) {
 
 		def getMem = mem
-		def getData = data+size_uint_set_head
-		def getLen = mem(data+loc_uint_set_len)
+		def getData = data + size_uint_set_head
+		def getLen = mem( data + loc_uint_set_len )
 		def getCard = getLen
 		def getSize = size_uint_set_head + getCard
-		def getKeyByIndex(index: Rep[Int]): Rep[Int] = 
-			mem(data+size_uint_set_head+index)
+		def getKeyByIndex(index: Rep[Int]): Rep[Int] = mem( data + size_uint_set_head + index )
 		def getIndexByKey (key: Rep[Int]): Rep[Int] = {
-			val addr = data+size_uint_set_head
+			val addr = data + size_uint_set_head
 
 			// Can LMS handle this recursion?
 			/*
@@ -211,12 +220,13 @@ trait Set extends UncheckedOps {
 
 		def buildUintSet (arr: Rep[Array[Int]],
 		 begin: Rep[Int], end: Rep[Int]) = {
-			mem(data+loc_uint_set_len) = end - begin			
+		 	mem(data + loc_set_type) = SetType.UintSet
+			mem(data + loc_uint_set_len) = end - begin			
 		 	// build uint set head
 			var i = begin
 			while (i < end) {
 				// TODO: replace with memcpy 
-				mem(data+size_uint_set_head+i-begin) = arr(i)
+				mem( data + size_uint_set_head + i - begin ) = arr(i)
 				i += 1
 			}
 		}

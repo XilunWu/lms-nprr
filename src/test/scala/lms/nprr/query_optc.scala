@@ -228,7 +228,7 @@ Query Interpretation = Compilation
       // mem usage ~64MB -> ~128MB
       // mem for result trie ???
       val mem = new SimpleMemPool (1 << 24)
-
+      val tmp_mem = new SimpleMemPool (1 << 24)
       var start = 0
 
       val tries = parents.map { p => 
@@ -249,20 +249,22 @@ Query Interpretation = Compilation
       print("mem usage for trie: ")
       println(start)
 
-      val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema)
+      val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema, tmp_mem)
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
       unchecked[Unit]("begin = clock()")
 
       // violated ordering of effect error here:
       // Build the result trie
-      val tb_size = tb.build_aggregate_null (mem.mem, start)
+      val result_card = tb.build_aggregate_null
 
       unchecked[Unit]("end = clock(); printf(\"Query execution time: %f\\n\", (double)(end - begin) / CLOCKS_PER_SEC)")
       // we need add trie header
       // println(SimpleTrie(mem, start, outSchema).getCard)
-      print("Mem usage of tb = "); println(tb_size)
-      start += tb_size
+      print("Cardinality of result trie = "); println(result_card)
+      mem.free
+      tmp_mem.free
+      
     case PrintCSV(parent) =>
       val schema = resultSchema(parent)
       printSchema(schema)

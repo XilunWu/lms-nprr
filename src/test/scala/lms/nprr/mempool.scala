@@ -6,13 +6,13 @@ trait MemPool extends UncheckedOps {
 	this: Dsl =>
 	abstract class MemPool {
 		val mem: Rep[Array[Int]]  // a better definition is Rep[Array[Byte]]
-		var top = 0
 		/*
 		def alloc (size: Int)
 		def alloc (size: Rep[Int])
 		def rollback (size: Int)
 		def rollback (size: Rep[Int])
 		*/
+		def free = {}
 	}
 
 	case class SimpleMemPool (val size: Int) extends MemPool {

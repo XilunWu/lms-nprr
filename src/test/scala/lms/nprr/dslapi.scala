@@ -292,7 +292,7 @@ trait DslGenC extends CGenNumericOps
 
       uint64_t decode2(uint32_t* vec, uint32_t *bitmap, size_t len, size_t min);
 
-      inline size_t simd_bitset_intersection_helper(uint32_t * output, uint32_t * a_in, uint32_t * b_in, size_t len) {
+      inline uint32_t simd_bitset_intersection_helper(uint32_t * output, uint32_t * a_in, uint32_t * b_in, size_t len) {
         //we assume equal size and bitmaps all are already aligned here:                                                             
         size_t i = 0;
         size_t curr = 0;
@@ -348,8 +348,16 @@ trait DslGenC extends CGenNumericOps
         *(output - 1) = start;
         return res_len;
       }
+
+      inline uint64_t simd_bitset_intersection_count_helper(uint32_t * a_in, uint32_t * b_in, size_t len) {
+
+      }
+
       inline uint32_t simd_bitset_intersection(uint32_t * output, size_t o_start, uint32_t * a_in, size_t a_start, uint32_t * b_in, size_t b_start, size_t len) {
         return simd_bitset_intersection_helper(&output[o_start], &a_in[a_start], &b_in[b_start], len);
+      }
+      inline uint64_t simd_bitset_intersection_count(uint32_t * a_in, size_t a_start, uint32_t * b_in, size_t b_start, size_t len) {
+        return simd_bitset_intersection_count_helper(&a_in[a_start], &b_in[b_start], len);
       }
 
       inline uint32_t decode2(uint32_t* vec, uint32_t *bitmap, size_t len, uint32_t min) {
