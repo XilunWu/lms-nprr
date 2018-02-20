@@ -301,6 +301,7 @@ trait DslGenC extends CGenNumericOps
         size_t res_len = 0;
         size_t start = 0;
         size_t count = 0;
+        uint32_t * set_data = output + 4;
 
         while ((i+8) < len) {
             __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
@@ -319,7 +320,7 @@ trait DslGenC extends CGenNumericOps
                   last_non_zero = curr;
                   count += __builtin_popcountl(c);
                 } 
-                output[curr++] = c;
+                set_data[curr++] = c;
               }
             }
             i += 8;
@@ -337,20 +338,42 @@ trait DslGenC extends CGenNumericOps
                 last_non_zero = curr;
                 count += __builtin_popcountl(c);
               } 
-              output[curr++] = c;
+              set_data[curr++] = c;
             }
             i += 1;
         }
         if (flag == false) res_len = 0;
         else res_len = last_non_zero + 1;
-        *(output - 3) = res_len;
-        *(output - 2) = count;
-        *(output - 1) = start;
-        return res_len;
+        *(output + 0) = 1; // SetType.BitSet
+        *(output + 1) = res_len;
+        *(output + 2) = count;
+        *(output + 3) = start;
+        return res_len + 4;
       }
 
       inline uint64_t simd_bitset_intersection_count_helper(uint32_t * a_in, uint32_t * b_in, size_t len) {
+        uint64_t count = 0;
+        uint32_t i = 0;
 
+        while ((i+8) < len) {
+            __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
+            const __m256 m_b = _mm256_loadu_ps((float*) &(b_in[i]));
+            m_a = _mm256_and_ps(m_a, m_b);
+
+            // separate r into 8 uint32_t
+            for(int index = 0; index < 8; ++index) {
+              uint32_t c = _mm256_extract_epi32((__m256i)m_a, index);   
+              count += __builtin_popcountl(c);
+            }
+            i += 8;
+        }
+        while (i < len) {
+            uint32_t c = a_in[i];
+            c &= b_in[i];
+            count += __builtin_popcountl(c);
+            i += 1;
+        }
+        return count;
       }
 
       inline uint32_t simd_bitset_intersection(uint32_t * output, size_t o_start, uint32_t * a_in, size_t a_start, uint32_t * b_in, size_t b_start, size_t len) {

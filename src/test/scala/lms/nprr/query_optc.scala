@@ -227,8 +227,8 @@ Query Interpretation = Compilation
       // allocate mem buffer = 256MB
       // mem usage ~64MB -> ~128MB
       // mem for result trie ???
-      val mem = new SimpleMemPool (1 << 24)
-      val tmp_mem = new SimpleMemPool (1 << 24)
+      val mem = new SimpleMemPool (1 << 26)
+      val tmp_mem = new SimpleMemPool (1 << 16)
       var start = 0
 
       val tries = parents.map { p => 

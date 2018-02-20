@@ -439,12 +439,22 @@ trait Trie extends MemPool with TrieBlock {
 					// this method will return the memory used by new trie block.
 					val offset_before_build = readVar( offset )
 					offset += tb.build_aggregate_nonleaf( block_on_lv )
-					// Since it's always in Uint Array format, we don't do the
-					// judgement of its type.
-					val uintset = tb.getUintSet
-					uintset foreach { x => 
-						it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
-						count += buildSubTrie( lv + 1 )
+					if (tb.getSetType == SetType.UintSet) {
+						val uintset = tb.getUintSet
+						uintset foreach { x => 
+							print("    " * lv); println(x)
+							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
+							buildSubTrie( lv + 1 )
+							unit()
+						}
+					} else {
+						val bitset = tb.getBitSet
+						bitset foreach { x => 
+							print("    " * lv); println(x)
+							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
+							buildSubTrie( lv + 1 )
+							unit()
+						}
 					}
 					// after this is done, restore the offset. 
 					// this is like a stack
