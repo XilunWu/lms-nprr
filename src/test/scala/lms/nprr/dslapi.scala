@@ -304,7 +304,7 @@ trait DslGenC extends CGenNumericOps
         uint32_t * set_data = output + 4;
         uint32_t vec[8];
 
-        while ((i+8) < len) {
+        while ((i+8) <= len) {
             __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
             const __m256 m_b = _mm256_loadu_ps((float*) &(b_in[i]));
             m_a = _mm256_and_ps(m_a, m_b);
@@ -320,7 +320,7 @@ trait DslGenC extends CGenNumericOps
             vec[6] = _mm256_extract_epi32((__m256i)m_a, 6);
             vec[7] = _mm256_extract_epi32((__m256i)m_a, 7);
 
-            for(int index = 0; index < 8; ++index) {
+            for(unsigned int index = 0; index < 8; ++index) {
               uint32_t c = vec[index];
               if (flag == false && c != 0) {
                 flag = true;
@@ -329,7 +329,7 @@ trait DslGenC extends CGenNumericOps
               if (flag == true) {
                 if (c != 0) {
                   last_non_zero = curr;
-                  count += __builtin_popcountl(c);
+                  count += __builtin_popcount(c);
                 } 
                 set_data[curr++] = c;
               }
@@ -347,7 +347,7 @@ trait DslGenC extends CGenNumericOps
             if (flag == true) {
               if (c != 0) {
                 last_non_zero = curr;
-                count += __builtin_popcountl(c);
+                count += __builtin_popcount(c);
               } 
               set_data[curr++] = c;
             }
@@ -366,28 +366,28 @@ trait DslGenC extends CGenNumericOps
         uint64_t count = 0;
         uint32_t i = 0;
 
-        while ((i+8) < len) {
+        while ((i+8) <= len) {
             __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
             const __m256 m_b = _mm256_loadu_ps((float*) &(b_in[i]));
             m_a = _mm256_and_ps(m_a, m_b);
 
             // separate r into 8 uint32_t
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 0));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 1));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 2));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 3));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 0));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 1));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 2));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 3));
 
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 4));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 5));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 6));
-            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 7));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 4));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 5));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 6));
+            count += __builtin_popcount(_mm256_extract_epi32((__m256i)m_a, 7));
 
             i += 8;
         }
         while (i < len) {
             uint32_t c = a_in[i];
             c &= b_in[i];
-            count += __builtin_popcountl(c);
+            count += __builtin_popcount(c);
             i += 1;
         }
         return count;
@@ -404,7 +404,7 @@ trait DslGenC extends CGenNumericOps
           size_t i = 0;
           size_t count = 0;
           while (i < len) {
-              size_t num = __builtin_popcountl(bitmap[i]);
+              size_t num = __builtin_popcount(bitmap[i]);
               uint32_t bitval = bitmap[i];
               count += num;
               for(size_t j = 0; j < num; ++j) {
