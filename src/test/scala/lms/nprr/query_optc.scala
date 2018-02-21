@@ -248,7 +248,7 @@ Query Interpretation = Compilation
       // tries(2).dumpTrie
       print("mem usage for trie: ")
       println(start)
-
+    
       val tb = new SimpleTrieBuilder (tries, tries.map{t => t.schema}, outSchema, tmp_mem)
       //Measure data loading and preprocessing time
       unchecked[Unit]("clock_t begin, end; double time_spent")
