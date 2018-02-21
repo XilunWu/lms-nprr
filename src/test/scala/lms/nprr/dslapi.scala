@@ -243,7 +243,7 @@ trait DslGenC extends CGenNumericOps
       #include <stdint.h>
       #include <unistd.h>
       #include <time.h>
-      #include <immintrin.h>
+      #include <x86intrin.h>
       #include <functional>
       #include <stdbool.h>
 
@@ -302,6 +302,7 @@ trait DslGenC extends CGenNumericOps
         size_t start = 0;
         size_t count = 0;
         uint32_t * set_data = output + 4;
+        uint32_t vec[8];
 
         while ((i+8) < len) {
             __m256 m_a = _mm256_loadu_ps((float*) &(a_in[i]));
@@ -309,8 +310,18 @@ trait DslGenC extends CGenNumericOps
             m_a = _mm256_and_ps(m_a, m_b);
 
             // separate r into 8 uint32_t
+            vec[0] = _mm256_extract_epi32((__m256i)m_a, 0);
+            vec[1] = _mm256_extract_epi32((__m256i)m_a, 1);
+            vec[2] = _mm256_extract_epi32((__m256i)m_a, 2);
+            vec[3] = _mm256_extract_epi32((__m256i)m_a, 3);
+
+            vec[4] = _mm256_extract_epi32((__m256i)m_a, 4);
+            vec[5] = _mm256_extract_epi32((__m256i)m_a, 5);
+            vec[6] = _mm256_extract_epi32((__m256i)m_a, 6);
+            vec[7] = _mm256_extract_epi32((__m256i)m_a, 7);
+
             for(int index = 0; index < 8; ++index) {
-              uint32_t c = _mm256_extract_epi32((__m256i)m_a, index);                
+              uint32_t c = vec[index];
               if (flag == false && c != 0) {
                 flag = true;
                 start = i+index;
@@ -361,10 +372,16 @@ trait DslGenC extends CGenNumericOps
             m_a = _mm256_and_ps(m_a, m_b);
 
             // separate r into 8 uint32_t
-            for(int index = 0; index < 8; ++index) {
-              uint32_t c = _mm256_extract_epi32((__m256i)m_a, index);   
-              count += __builtin_popcountl(c);
-            }
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 0));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 1));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 2));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 3));
+
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 4));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 5));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 6));
+            count += __builtin_popcountl(_mm256_extract_epi32((__m256i)m_a, 7));
+
             i += 8;
         }
         while (i < len) {
