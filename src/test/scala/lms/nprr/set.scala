@@ -61,6 +61,7 @@ trait Set extends UncheckedOps {
 		def getLen = mem(data+loc_bit_set_len)
 		def getCard = mem(data+loc_bit_set_card)
 		def getMin = mem(data+loc_bit_set_min)
+		def setMin (min: Rep[Int]) = { mem( data + loc_bit_set_min ) = min }
 		def getSize = size_bit_set_head + getLen
 		def getIndexSize = getLen << BITS_PER_INT_SHIFT
 		def getIndexByKey(key: Rep[Int]): Rep[Int] = {

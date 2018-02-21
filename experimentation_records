@@ -120,4 +120,12 @@ compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-functio
 
 2017/11/07
 	Implement range_bitset and uinteger exactly as EH does.
-	
+
+
+2018/02/20
+    FB test becomes much faster on my laptop:
+       #COUNT
+       mem usage for trie: 14518914
+       Query execution time: 0.016195
+       Cardinality of result trie = 9672060
+    Reason: ???

@@ -442,7 +442,7 @@ trait Trie extends MemPool with TrieBlock {
 					if (tb.getSetType == SetType.UintSet) {
 						val uintset = tb.getUintSet
 						uintset foreach { x => 
-							print("    " * lv); println(x)
+							// print("    " * lv); println(x)
 							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
 							buildSubTrie( lv + 1 )
 							unit()
@@ -450,7 +450,7 @@ trait Trie extends MemPool with TrieBlock {
 					} else {
 						val bitset = tb.getBitSet
 						bitset foreach { x => 
-							print("    " * lv); println(x)
+							// print("    " * lv); println(x)
 							it_involved foreach { it => it.setChildBlock (attr, x) } // open(lv): to the child of x
 							buildSubTrie( lv + 1 )
 							unit()

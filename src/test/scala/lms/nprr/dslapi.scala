@@ -345,9 +345,9 @@ trait DslGenC extends CGenNumericOps
         if (flag == false) res_len = 0;
         else res_len = last_non_zero + 1;
         *(output + 0) = 1; // SetType.BitSet
-        *(output + 1) = res_len;
+        *(output + 1) = res_len + 4;
         *(output + 2) = count;
-        *(output + 3) = start;
+        *(output + 3) = start * (1 << 5);
         return res_len + 4;
       }
 

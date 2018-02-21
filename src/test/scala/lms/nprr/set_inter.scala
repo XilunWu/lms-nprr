@@ -116,21 +116,15 @@ trait SetIntersection extends Set {
 			val a_arr_start = a.getData + c_start - a_start
 			val b_arr = b.getMem
 			val b_arr_start = b.getData + c_start - b_start
-
-			// the new set will overwrite the old set in tmp memory
-			// the struct returned by inter_helper is: head, data. 
-			// so we need allocate space in front of data.
-			// inter_helper returns the type of set.
-
 			// error: violating ordering of effect 
 			// Resolved: Can't define variable in object. 
 			// Ask: Why?
 			// Answer: It's about scoping. We must make sure the variable doesn't escape the scope.
 			val c_set_size = bit_inter_helper (
-				a_arr, b_arr, a_arr_start, b_arr_start, c_len, c_arr, c_addr)
-
-			val c_min_offset = BitSet(c_arr, c_addr).getMin
-			val c_real_min = (c_start + c_min_offset) << BITS_PER_INT_SHIFT
+				a_arr, b_arr, a_arr_start, b_arr_start, c_len, c_arr, c_addr )
+			val bitset = BitSet(c_arr, c_addr)
+			val c_min_offset = bitset.getMin
+			bitset.setMin ( c_min + c_min_offset )
 			c_set_size
 		}
 		// a: bit set, b: bit set --> c: bit set 
