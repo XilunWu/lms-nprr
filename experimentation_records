@@ -33,6 +33,7 @@ When I run gplus_test on Snyder with the follwing settings, it gives these resul
 1 node/10 ppn/csit queue: Killed (because of starvation?)
 1 node/20 ppn/csit queue: 57s
 
+sbt command: sbt "test:run c fb_test"
 compile options: -mavx2 -fPIC -std=c++0x -pedantic -O3 -Wall -Wno-unused-function -Wextra -march=native -mtune=native
 
 
